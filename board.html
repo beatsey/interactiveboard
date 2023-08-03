@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Interactive board</title>
+    <link rel="stylesheet" href="main.css">
+    <script type="text/javascript" src="main.js"></script>
+</head>
+<body onload="init()">
+    <canvas id="can"></canvas>
+    <div style="position:absolute;top:12%;right:3%;">Choose Color</div>
+    <div style="position:absolute;top:15%;right:5%;width:10px;height:10px;background:green;" id="green" onclick="color(this)"></div>
+    <div style="position:absolute;top:15%;right:6%;width:10px;height:10px;background:blue;" id="blue" onclick="color(this)"></div>
+    <div style="position:absolute;top:15%;right:7%;width:10px;height:10px;background:red;" id="red" onclick="color(this)"></div>
+    <div style="position:absolute;top:17%;right:5%;width:10px;height:10px;background:yellow;" id="yellow" onclick="color(this)"></div>
+    <div style="position:absolute;top:17%;right:6%;width:10px;height:10px;background:orange;" id="orange" onclick="color(this)"></div>
+    <div style="position:absolute;top:17%;right:7%;width:10px;height:10px;background:black;" id="black" onclick="color(this)"></div>
+    <div style="position:absolute;top:20%;right:3%;">Eraser</div>
+    <div style="position:absolute;top:22%;right:5%;width:15px;height:15px;background:white;border:2px solid;" id="white" onclick="color(this)"></div>
+    <input type="button" class="btn" value="save" size="30" onclick="save()" style="bottom:40px;left:40px;">
+    <input type="button" class="btn" value="save_board_state" size="30" onclick="save_board_state()" style="bottom:40px;left:200px;">
+    <input type="button" class="btn" value="clear" size="30" onclick="erase()" style="bottom:40px;left:120px;">
+</body>
+</html>
