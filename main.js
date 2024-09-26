@@ -1,5 +1,6 @@
 // noinspection JSBitwiseOperatorUsage
-
+// TODO: Сделать масштабирование интерфейса на ctrl + shift + "-"
+// TODO: ctrl + "-" меняет размер только доски
 class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -242,7 +243,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 3,
+    lineWidth: 1,
     flags: {
         spacebar: false,
         dragging: false,
@@ -277,7 +278,8 @@ let dpi = devicePixelRatio
 function setCanvasWidthHeight() {
     canvas = document.getElementById('can')
     dpi = devicePixelRatio
-    scale = dpi / wheel_scale
+    //scale = dpi / wheel_scale
+    scale = 1 / wheel_scale
     canvas.width = Math.round(window.innerWidth * dpi)
     canvas.height = Math.round(window.innerHeight * dpi)
     ctx = canvas.getContext("2d")
@@ -289,16 +291,16 @@ let scrollMoves = {
     lastTimestamp: 0
 };
 
+
 function init() {
     setCanvasWidthHeight()
 
     // canvas mousedown event happens first and registers mouse left and right clicks
-    canvas.addEventListener("mousedown", e => {register_click(e); mousemove(e)}, false)
-    //addEventListener("mousedown", e => mousemove(e), false)
-    addEventListener("mousemove", e => mousemove(e), false)
-    addEventListener("mouseup", e => register_click(e), false)
+    canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
+    addEventListener("pointermove", e => pointermove(e), false)
+    addEventListener("pointerup", e => register_click(e), false)
 
-    //addEventListener("touchmove", e => mousemove(e), false)
+    //addEventListener("touchmove", e => pointermove(e), false)
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
         setCanvasWidthHeight()
@@ -354,18 +356,18 @@ function init() {
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
             zoom(Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
-            canvas_state.offset.x += 2 * e.deltaX / scale
-            canvas_state.offset.y += 2 * e.deltaY / scale
-            canvas_state.offset.mul(dpi).round().mul(1 / dpi)
+            canvas_state.offset.x += 2 * e.deltaX / wheel_scale
+            canvas_state.offset.y += 2 * e.deltaY / wheel_scale
+            console.log("offset:", canvas_state.offset)
             drawCurves()
         }
     }, false)
 
     addEventListener('keydown', e => {
-        if (!canvas_state.flags.spacebar && e.code === "Space") {
+        if (!canvas_state.flags.spacebar && e.key === " ") {
             canvas_state.flags.spacebar = true
         }
-        if (!canvas_state.flags.spacebar && e.code === "Shift") {
+        if (!canvas_state.flags.spacebar && e.key === "Shift") {
             canvas_state.flags.shift = true
         }
         else if (e.ctrlKey || e.metaKey) {
@@ -392,10 +394,10 @@ function init() {
         }
     })
     addEventListener('keyup', e => {
-        if (e.code === "Space") {
+        if (e.key === " ") {
             canvas_state.flags.spacebar = false
         }
-        else if (e.code === "Shift") {
+        else if (e.key === "Shift") {
             canvas_state.flags.shift = false
         }
     })
@@ -433,8 +435,9 @@ function zoom(speed, reset_scale= false){
         canvas_state.offset.sub(canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale - whs))
         // this is done so that we are shifting canvas only by integer pixels on the screen
         // Otherwise there will be a blur
-        canvas_state.offset.mul(dpi).round().mul(1 / dpi)
+        //canvas_state.offset.mul(dpi).round().mul(1 / dpi)
         scale = dpi / wheel_scale;
+        scale = 1 / wheel_scale
         drawCurves();
     }
 }
@@ -444,8 +447,53 @@ function drawCurves() {
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
-    // set correct scale and offset
-    ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
+
+    // Если рисовать тут, то линия нечёткая
+    //ctx.beginPath();
+    //ctx.moveTo(10, 20);
+    //ctx.lineTo(10, 400);
+    //ctx.strokeStyle = "black";
+    //ctx.lineWidth = 1
+    //ctx.stroke();
+    //ctx.closePath();
+
+    //
+
+    // Это чёткая линия
+    // Поймать нужный offset
+//    pixel_x1 = 10
+//    pixel_y1 = 20
+//    pixel_x2 = 10
+//    pixel_y2 = 400
+//
+//    ctx.beginPath();
+//    ctx.moveTo(pixel_x1 + 0.5, pixel_y1 + 0.5);
+//    ctx.lineTo(pixel_x2 + 0.5, pixel_y2 + 0.5);
+//    ctx.strokeStyle = "black";
+//    ctx.lineWidth = 1
+//    ctx.stroke();
+//    ctx.closePath();
+
+    // ЭТО ПИКСЕЛЬНОЕ ПРОСТРАНСТВО ЭКРАНА!
+
+
+    ctx.translate(0.5, 0.5)
+
+    for(let x = 11;x <= 1910; x+=2){
+        pixel_y1 = 20
+        pixel_y2 = 100
+        ctx.beginPath();
+        ctx.moveTo(x, pixel_y1);
+        ctx.lineTo(x, pixel_y2);
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 1
+        ctx.stroke();
+        ctx.closePath();
+    }
+
+    ctx.translate(-0.5, -0.5)
+
+
 
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
@@ -455,32 +503,37 @@ function drawCurves() {
         * */
 
         if(elem.type === 'curve') {
+            ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
+            //ctx.setTransform(wheel_scale,0,0,wheel_scale,-canvas_state.offset.x * wheel_scale,-canvas_state.offset.y * wheel_scale)
+
             if (elem.width % 2 === 1)
-                ctx.translate(-0.5, -0.5)
+                ctx.translate(0.5, 0.5)
 
             let pt = elem.points[0]
             ctx.beginPath();
             ctx.moveTo(pt.x, pt.y);
             for (let j = 1; j < elem.points.length; j++) {
                 let new_pt = elem.points[j]
-                ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                //ctx.lineTo(pt.x, pt.y)
+                //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
+                ctx.lineTo(Math.round(pt.x), Math.round(pt.y))
                 pt = new_pt;
             }
 
-            ctx.lineTo(pt.x, pt.y);
+            ctx.lineTo(Math.round(pt.x), Math.round(pt.y));
             ctx.strokeStyle = elem.color;
-            ctx.lineWidth = elem.width
+            ctx.lineWidth = elem.width;
             ctx.stroke();
             ctx.closePath();
 
             if (elem.width % 2 === 1)
-                ctx.translate(0.5, 0.5)
+                ctx.translate(-0.5, -0.5)
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
 
             // TODO: make round topleft for different dpi to make it sharp.
             // it makes sense to recalculate topleft for every image on dpi change
+
+            ctx.setTransform(scale * dpi, 0, 0, scale * dpi, -canvas_state.offset.x * scale * dpi, -canvas_state.offset.y * scale * dpi)
 
             //elem.topleft.mul(dpi).round().mul(1 / dpi)
             ctx.drawImage(elem.image, elem.topleft.x, elem.topleft.y, elem.width, elem.height)
@@ -494,14 +547,18 @@ function register_click(e) {
 }
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
-function mousemove(e) {
+function pointermove(e) {
+
     // позиция курсора в разрешении экрана. В пикселях.
     check_dragging()
-    canvas_state.current_screen_pixel_pos = new Vector2(e.clientX - canvas.offsetLeft, e.clientY - canvas.offsetTop)
+    canvas_state.current_screen_pixel_pos = new Vector2(Math.round((e.clientX - canvas.offsetLeft) * dpi), Math.round((e.clientY - canvas.offsetTop) * dpi))
+
+    console.log(canvas_state.current_screen_pixel_pos, wheel_scale, canvas_state.flags.dragging)
+
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
         canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(wheel_scale).add(start_offset)
-        canvas_state.offset.mul(dpi).round().mul(1 / dpi)
+//        canvas_state.offset.mul(dpi).round().mul(1 / dpi)
         drawCurves()
 
         return
@@ -519,9 +576,11 @@ function mousemove(e) {
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
     // часть с mul dpi round mul 1 / dpi нужна для четкости
     let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale)
-    pt.mul(dpi).round().mul(1 / dpi).add(canvas_state.offset)
 
-    // Если это новая кривая, то дабавляем её
+    //pt.mul(dpi).round().mul(1 / dpi).add(canvas_state.offset)
+    pt.add(canvas_state.offset)
+
+    // Если это новая кривая, то добавляем её
     if (canvas_state.flag_curve_ended) {
         let curve = new Curve;
         canvas_state.curvesandimages.push(curve);
@@ -532,15 +591,13 @@ function mousemove(e) {
         // We add a point only if it is different from the previous one
         let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
         let lastpt = curve.points[curve.points.length-1]
+
+        if (canvas_state.flags.shift) {
+            // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
+            pt.x = lastpt.x;
+        }
+
         if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
-
-            // Shift is pressed, so we need to calculate a line
-            if (canvas_state.flags.shift){
-                // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
-                // Проекция на x = 0
-
-            }
-
             curve.push(pt)
         }
     }
