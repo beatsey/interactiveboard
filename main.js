@@ -493,7 +493,7 @@ function drawCurves() {
 
     ctx.translate(-0.5, -0.5)
 
-
+    console.log(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
@@ -506,8 +506,8 @@ function drawCurves() {
             ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
             //ctx.setTransform(wheel_scale,0,0,wheel_scale,-canvas_state.offset.x * wheel_scale,-canvas_state.offset.y * wheel_scale)
 
-            if (elem.width % 2 === 1)
-                ctx.translate(0.5, 0.5)
+//            if (elem.width % 2 === 1)
+//                ctx.translate(0.5, 0.5)
 
             let pt = elem.points[0]
             ctx.beginPath();
@@ -515,28 +515,29 @@ function drawCurves() {
             for (let j = 1; j < elem.points.length; j++) {
                 let new_pt = elem.points[j]
                 //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                ctx.lineTo(Math.round(pt.x), Math.round(pt.y))
+                ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5)
                 pt = new_pt;
             }
 
-            ctx.lineTo(Math.round(pt.x), Math.round(pt.y));
+            ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5);
             ctx.strokeStyle = elem.color;
             ctx.lineWidth = elem.width;
             ctx.stroke();
             ctx.closePath();
 
-            if (elem.width % 2 === 1)
-                ctx.translate(-0.5, -0.5)
+//            if (elem.width % 2 === 1)
+//                ctx.translate(-0.5, -0.5)
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
 
             // TODO: make round topleft for different dpi to make it sharp.
             // it makes sense to recalculate topleft for every image on dpi change
 
-            ctx.setTransform(scale * dpi, 0, 0, scale * dpi, -canvas_state.offset.x * scale * dpi, -canvas_state.offset.y * scale * dpi)
-
-            //elem.topleft.mul(dpi).round().mul(1 / dpi)
-            ctx.drawImage(elem.image, elem.topleft.x, elem.topleft.y, elem.width, elem.height)
+            // ERROR: Что-то не так со скейлом изображений!
+//            ctx.setTransform(scale * dpi, 0, 0, scale * dpi, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
+//
+//            //elem.topleft.mul(dpi).round().mul(1 / dpi)
+//            ctx.drawImage(elem.image, elem.topleft.x, elem.topleft.y, elem.width, elem.height)
         }
     }
 }
@@ -552,8 +553,6 @@ function pointermove(e) {
     // позиция курсора в разрешении экрана. В пикселях.
     check_dragging()
     canvas_state.current_screen_pixel_pos = new Vector2(Math.round((e.clientX - canvas.offsetLeft) * dpi), Math.round((e.clientY - canvas.offsetTop) * dpi))
-
-    console.log(canvas_state.current_screen_pixel_pos, wheel_scale, canvas_state.flags.dragging)
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
@@ -575,10 +574,7 @@ function pointermove(e) {
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
     // часть с mul dpi round mul 1 / dpi нужна для четкости
-    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale)
-
-    //pt.mul(dpi).round().mul(1 / dpi).add(canvas_state.offset)
-    pt.add(canvas_state.offset)
+    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
 
     // Если это новая кривая, то добавляем её
     if (canvas_state.flag_curve_ended) {
@@ -593,11 +589,22 @@ function pointermove(e) {
         let lastpt = curve.points[curve.points.length-1]
 
         if (canvas_state.flags.shift) {
-            // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
-            pt.x = lastpt.x;
-        }
+            // Remove all points except the first one
+            curve.points.length = 1
 
-        if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
+            // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
+            pt.y = lastpt.y;
+
+            if(pt.x !== lastpt.x || pt.y !== lastpt.y) {
+                if(curve.points.length == 1) {
+                    curve.push(pt)
+                }else{ // The length of the curve is 2
+                    curve.points[curve.points.length - 1] = pt
+                }
+            }
+
+        }
+        else if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
             curve.push(pt)
         }
     }
