@@ -533,17 +533,24 @@ function drawCurves() {
                 //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
                 ctx.setTransform(1, 0, 0, 1, 0, 0)
 
+                let odd_offset = 0
+                if (elem.width % 2 == 1){
+                    odd_offset = 0.5
+                }
+
                 let pt = elem.points[0]
                 ctx.beginPath();
-                ctx.moveTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + 0.5);
+                ctx.moveTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset);
                 for (let j = 1; j < elem.points.length; j++) {
                     let new_pt = elem.points[j]
                     //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                    ctx.lineTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + 0.5)
+                    ctx.lineTo(Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset, Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset)
                     pt = new_pt;
                 }
 
-                ctx.lineTo(Math.round(pt.x*scale-canvas_state.offset.x * scale), Math.round(pt.y*scale-canvas_state.offset.y * scale) + 0.5)
+                // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
+                // Иначе они не однотонные
+                ctx.lineTo(Math.round(pt.x*scale-canvas_state.offset.x * scale) + odd_offset, Math.round(pt.y*scale-canvas_state.offset.y * scale) + odd_offset)
 
                 //ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5);
                 ctx.strokeStyle = elem.color;
@@ -614,32 +621,27 @@ function pointermove(e) {
         }else{
             // We add a point only if it is different from the previous one
             let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
-            let lastpt = curve.points[curve.points.length-1]
 
             if (canvas_state.flags.shift) {
                 // Remove all points except the first one
                 curve.points.length = 1
 
                 // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
-                pt.y = lastpt.y;
 
-                if(pt.x !== lastpt.x || pt.y !== lastpt.y) {
-                    if(curve.points.length == 1) {
-                        curve.push(pt)
-                    }else{ // The length of the curve is 2
-                        curve.points[curve.points.length - 1] = pt
-                    }
+                if (Math.abs(pt.x-curve.points[0].x) >= Math.abs(pt.y-curve.points[0].y)) {
+                    pt.y = curve.points[0].y;
+                }else{
+                    pt.x = curve.points[0].x;
                 }
-
             }
-            else if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
+
+            if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
                 curve.push(pt)
             }
         }
     }else if(canvas_state.tool == "eraser"){
         // TODO: ищем пересечения с кривыми. Если найдено, то удаляем кривую. Но как работать с undo историей?
     }
-
 
     // Рисуем холст
     drawCurves();
