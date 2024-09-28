@@ -244,6 +244,7 @@ let canvas_state = {
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
     lineWidth: 1,
+    tool: "pencil",
     flags: {
         spacebar: false,
         dragging: false,
@@ -345,6 +346,7 @@ function init() {
     })
 
     canvas.addEventListener('wheel', function(e) {
+        console.log(wheel_scale)
         e.preventDefault()
 
         // We classify mouse / trackpad by the initial e.wheelDeltaY speed
@@ -356,8 +358,8 @@ function init() {
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
             zoom(Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
-            canvas_state.offset.x += 2 * e.deltaX / wheel_scale
-            canvas_state.offset.y += 2 * e.deltaY / wheel_scale
+            canvas_state.offset.x += e.deltaX * wheel_scale
+            canvas_state.offset.y += e.deltaY * wheel_scale
             console.log("offset:", canvas_state.offset)
             drawCurves()
         }
@@ -427,7 +429,7 @@ function zoom(speed, reset_scale= false){
         wheel_scale *= Math.exp(speed * 0.008)
         // maximum scale down = 400%, maximum scale up = 500%
         // 4 = 400%, 0.2 = 1 / 500%
-        wheel_scale = Math.max(Math.min(4, wheel_scale), 0.2)
+        wheel_scale = Math.max(Math.min(10, wheel_scale), 0.1)
     }
 
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
@@ -503,30 +505,56 @@ function drawCurves() {
         * */
 
         if(elem.type === 'curve') {
-            ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
-            //ctx.setTransform(wheel_scale,0,0,wheel_scale,-canvas_state.offset.x * wheel_scale,-canvas_state.offset.y * wheel_scale)
+            if(false){
+//                if (elem.width % 2 === 1)
+//                    ctx.translate(0.5, 0.5)
 
-//            if (elem.width % 2 === 1)
-//                ctx.translate(0.5, 0.5)
+                ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            let pt = elem.points[0]
-            ctx.beginPath();
-            ctx.moveTo(pt.x, pt.y);
-            for (let j = 1; j < elem.points.length; j++) {
-                let new_pt = elem.points[j]
-                //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5)
-                pt = new_pt;
+                let pt = elem.points[0]
+                ctx.beginPath();
+                ctx.moveTo(pt.x, pt.y);
+                for (let j = 1; j < elem.points.length; j++) {
+                    let new_pt = elem.points[j]
+                    //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
+                    ctx.lineTo(Math.round(pt.x), Math.round(pt.y))
+                    pt = new_pt;
+                }
+
+                ctx.lineTo(Math.round(pt.x), Math.round(pt.y));
+                ctx.strokeStyle = elem.color;
+                ctx.lineWidth = elem.width;
+                ctx.stroke();
+                ctx.closePath();
+
+                if (elem.width % 2 === 1)
+                    ctx.translate(-0.5, -0.5)
+            }else{
+                //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
+                ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+                let pt = elem.points[0]
+                ctx.beginPath();
+                ctx.moveTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + 0.5);
+                for (let j = 1; j < elem.points.length; j++) {
+                    let new_pt = elem.points[j]
+                    //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
+                    ctx.lineTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + 0.5)
+                    pt = new_pt;
+                }
+
+                ctx.lineTo(Math.round(pt.x*scale-canvas_state.offset.x * scale), Math.round(pt.y*scale-canvas_state.offset.y * scale) + 0.5)
+
+                //ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5);
+                ctx.strokeStyle = elem.color;
+                ctx.lineWidth = elem.width;
+                ctx.stroke();
+                ctx.closePath();
+
+//                if (elem.width % 2 === 1)
+//                    ctx.translate(-0.5, -0.5)
+
             }
-
-            ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5);
-            ctx.strokeStyle = elem.color;
-            ctx.lineWidth = elem.width;
-            ctx.stroke();
-            ctx.closePath();
-
-//            if (elem.width % 2 === 1)
-//                ctx.translate(-0.5, -0.5)
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
 
@@ -549,7 +577,6 @@ function register_click(e) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
-
     // позиция курсора в разрешении экрана. В пикселях.
     check_dragging()
     canvas_state.current_screen_pixel_pos = new Vector2(Math.round((e.clientX - canvas.offsetLeft) * dpi), Math.round((e.clientY - canvas.offsetTop) * dpi))
@@ -569,44 +596,48 @@ function pointermove(e) {
         return
     }
 
-    // Если что-то рисуем, то буфер отката обнуляется
-    canvas_state.undo_curves = [];
+    if(canvas_state.tool == "pencil") {
+        // Если что-то рисуем, то буфер отката обнуляется
+        canvas_state.undo_curves = [];
 
-    // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    // часть с mul dpi round mul 1 / dpi нужна для четкости
-    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
+        // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
+        // часть с mul dpi round mul 1 / dpi нужна для четкости
+        let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
 
-    // Если это новая кривая, то добавляем её
-    if (canvas_state.flag_curve_ended) {
-        let curve = new Curve;
-        canvas_state.curvesandimages.push(curve);
-        canvas_state.flag_curve_ended = false;
+        // Если это новая кривая, то добавляем её
+        if (canvas_state.flag_curve_ended) {
+            let curve = new Curve;
+            canvas_state.curvesandimages.push(curve);
+            canvas_state.flag_curve_ended = false;
 
-        curve.push(pt)
-    }else{
-        // We add a point only if it is different from the previous one
-        let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
-        let lastpt = curve.points[curve.points.length-1]
-
-        if (canvas_state.flags.shift) {
-            // Remove all points except the first one
-            curve.points.length = 1
-
-            // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
-            pt.y = lastpt.y;
-
-            if(pt.x !== lastpt.x || pt.y !== lastpt.y) {
-                if(curve.points.length == 1) {
-                    curve.push(pt)
-                }else{ // The length of the curve is 2
-                    curve.points[curve.points.length - 1] = pt
-                }
-            }
-
-        }
-        else if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
             curve.push(pt)
+        }else{
+            // We add a point only if it is different from the previous one
+            let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
+            let lastpt = curve.points[curve.points.length-1]
+
+            if (canvas_state.flags.shift) {
+                // Remove all points except the first one
+                curve.points.length = 1
+
+                // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
+                pt.y = lastpt.y;
+
+                if(pt.x !== lastpt.x || pt.y !== lastpt.y) {
+                    if(curve.points.length == 1) {
+                        curve.push(pt)
+                    }else{ // The length of the curve is 2
+                        curve.points[curve.points.length - 1] = pt
+                    }
+                }
+
+            }
+            else if (pt.x !== lastpt.x || pt.y !== lastpt.y) {
+                curve.push(pt)
+            }
         }
+    }else if(canvas_state.tool == "eraser"){
+        // TODO: ищем пересечения с кривыми. Если найдено, то удаляем кривую. Но как работать с undo историей?
     }
 
 
@@ -651,8 +682,14 @@ function load_board_state() {
 }
 
 function color(obj) {
-    linecolor = obj.id;
+    linecolor = obj.id
+    canvas_state.tool = "pencil"
 }
+
+function pickeraser(obj){
+    canvas_state.tool = "eraser"
+}
+
 function erase() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
