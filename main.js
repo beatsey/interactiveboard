@@ -346,7 +346,7 @@ function init() {
     })
 
     canvas.addEventListener('wheel', function(e) {
-        console.log(wheel_scale)
+        //console.log(wheel_scale)
         e.preventDefault()
 
         // We classify mouse / trackpad by the initial e.wheelDeltaY speed
@@ -360,7 +360,6 @@ function init() {
         } else {
             canvas_state.offset.x += e.deltaX * wheel_scale
             canvas_state.offset.y += e.deltaY * wheel_scale
-            console.log("offset:", canvas_state.offset)
             drawCurves()
         }
     }, false)
@@ -495,7 +494,7 @@ function drawCurves() {
 
     ctx.translate(-0.5, -0.5)
 
-    console.log(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
+    //console.log(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
@@ -584,9 +583,10 @@ function register_click(e) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
-    // позиция курсора в разрешении экрана. В пикселях.
     check_dragging()
-    canvas_state.current_screen_pixel_pos = new Vector2(Math.round((e.clientX - canvas.offsetLeft) * dpi), Math.round((e.clientY - canvas.offsetTop) * dpi))
+
+    // Позиция курсора в пикселях
+    canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
@@ -611,7 +611,7 @@ function pointermove(e) {
         // часть с mul dpi round mul 1 / dpi нужна для четкости
         let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
 
-        // Если это новая кривая, то добавляем её
+        // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
         if (canvas_state.flag_curve_ended) {
             let curve = new Curve;
             canvas_state.curvesandimages.push(curve);
@@ -624,18 +624,32 @@ function pointermove(e) {
 
             if (canvas_state.flags.shift) {
                 // Remove all points except the first one
-                curve.points.length = 1
+                if (curve.points.length > 1)
+                    curve.points.length--
 
-                // TODO: get the nearest distance line from x=0, x=y, x=-y, y=0 with the center in lastpt
+                // We get projection on point onto line
+                let lastpt = curve.points[curve.points.length - 1]
+                let vec_x = pt.x - lastpt.x
+                let vec_y = pt.y - lastpt.y
+                let vec_len = Math.sqrt(vec_x * vec_x + vec_y * vec_y)
+                if (vec_len == 0) return
 
-                if (Math.abs(pt.x-curve.points[0].x) >= Math.abs(pt.y-curve.points[0].y)) {
-                    pt.y = curve.points[0].y;
-                }else{
-                    pt.x = curve.points[0].x;
-                }
-            }
+                let deg = -Math.sign(vec_y) * Math.acos(vec_x / vec_len) * 180 / Math.PI
+                let fi = Math.round(deg / 15) * 15 / 180 * Math.PI
 
-            if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
+                let s = Math.sin(fi)
+                let c = Math.cos(fi)
+                let A = -c
+                let B = s
+                let C = c * lastpt.x - s * lastpt.y
+
+                // pt is projection onto the line
+                let t = A * pt.x + B * pt.y + C
+                pt.x = lastpt.x + A * t
+                pt.y = lastpt.y + B * t
+
+                curve.push(pt)
+            }else if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
                 curve.push(pt)
             }
         }
