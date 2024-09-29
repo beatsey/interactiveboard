@@ -235,6 +235,7 @@ let canvas, ctx,
 
 // Данная переменная хранит все объекты доски
 let canvas_state = {
+    SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
     curvesandimages:[],
     undo_curves:[],
     // Флаг равен true, если предыдущая кривая закончена
@@ -532,10 +533,7 @@ function drawCurves() {
                 //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
                 ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-                let odd_offset = 0
-                if (elem.width % 2 == 1){
-                    odd_offset = 0.5
-                }
+                let odd_offset = (elem.width % 2) * 0.5
 
                 let pt = elem.points[0]
                 ctx.beginPath();
@@ -550,15 +548,10 @@ function drawCurves() {
                 // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
                 // Иначе они не однотонные
                 ctx.lineTo(Math.round(pt.x*scale-canvas_state.offset.x * scale) + odd_offset, Math.round(pt.y*scale-canvas_state.offset.y * scale) + odd_offset)
-
-                //ctx.lineTo(Math.round(pt.x) + 0.5, Math.round(pt.y) + 0.5);
-                ctx.strokeStyle = elem.color;
-                ctx.lineWidth = elem.width;
-                ctx.stroke();
-                ctx.closePath();
-
-//                if (elem.width % 2 === 1)
-//                    ctx.translate(-0.5, -0.5)
+                ctx.strokeStyle = elem.color
+                ctx.lineWidth = elem.width
+                ctx.stroke()
+                ctx.closePath()
 
             }
         }else if (elem.type === 'image') {
@@ -591,7 +584,6 @@ function pointermove(e) {
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
         canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(wheel_scale).add(start_offset)
-//        canvas_state.offset.mul(dpi).round().mul(1 / dpi)
         drawCurves()
 
         return
@@ -603,13 +595,12 @@ function pointermove(e) {
         return
     }
 
+    // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
+    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
+
     if(canvas_state.tool == "pencil") {
         // Если что-то рисуем, то буфер отката обнуляется
         canvas_state.undo_curves = [];
-
-        // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-        // часть с mul dpi round mul 1 / dpi нужна для четкости
-        let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
 
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
         if (canvas_state.flag_curve_ended) {
@@ -635,7 +626,7 @@ function pointermove(e) {
                 if (vec_len == 0) return
 
                 let deg = -Math.sign(vec_y) * Math.acos(vec_x / vec_len) * 180 / Math.PI
-                let fi = Math.round(deg / 15) * 15 / 180 * Math.PI
+                let fi = Math.round(deg / canvas_state.SHIFT_LINE_STEP_DEGREES) * canvas_state.SHIFT_LINE_STEP_DEGREES / 180 * Math.PI
 
                 let s = Math.sin(fi)
                 let c = Math.cos(fi)
@@ -648,13 +639,51 @@ function pointermove(e) {
                 pt.x = lastpt.x + A * t
                 pt.y = lastpt.y + B * t
 
+                // TODO: Добавить прорисовку опорной прямой пунктиром
+
                 curve.push(pt)
             }else if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
                 curve.push(pt)
             }
         }
-    }else if(canvas_state.tool == "eraser"){
-        // TODO: ищем пересечения с кривыми. Если найдено, то удаляем кривую. Но как работать с undo историей?
+    }else if(canvas_state.tool == "eraser") {
+        if (canvas_state.flag_curve_ended) {
+            let curve = new Curve;
+            canvas_state.curvesandimages.push(curve);
+            canvas_state.flag_curve_ended = false;
+
+            curve.push(pt)
+        }else{
+            let lastpt = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1].points[0]
+
+            // Ищем пересечения отрезка [lastpt, pt] с кривыми.
+            // TODO: Оптимизация: только с пересекающимся bounding box'ом
+            for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--){
+                if(canvas_state.curvesandimages[i].type != "curve") continue
+
+                let pts = canvas_state.curvesandimages[i].points
+                let is_intersect = false
+                for(let p=1;p<pts.length;p++) {
+                    // Проверяем пересечение отрезка [pts[p-1], pts[p]] с отрезком [lastpt, pt]
+                    let orientation = (p,q,r) => Math.sign((q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y))
+
+                    let o1 = orientation(pts[p - 1], pts[p], lastpt)
+                    let o2 = orientation(pts[p - 1], pts[p], pt)
+                    let o3 = orientation(lastpt, pt, pts[p - 1])
+                    let o4 = orientation(lastpt, pt, pts[p])
+
+                    if (o1 != o2 && o3 != o4) {
+                        is_intersect = true
+                        break
+                    }
+                }
+
+                if (is_intersect) { // Нашли пересечение с кривой, удаляем
+                    canvas_state.curvesandimages.splice(i, 1)
+                    // TODO: Добавить возможность сохранения в историю для отката
+                }
+            }
+        }
     }
 
     // Рисуем холст
