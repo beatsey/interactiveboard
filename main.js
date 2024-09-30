@@ -43,16 +43,16 @@ class MyImage {
             this.topleft = topleft.cpy()
         }else {
             // Cursor position
-            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).mul(dpi)
+            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale)
             // the formulas below are needed so that topleft of the image is placed exactly into the pixel after scale
             // dpi = wheel_scale * scale
             this.topleft.x -= image.width * 0.5
             this.topleft.y -= image.height * 0.5
-            this.topleft.round().mul(1 / dpi).add(canvas_state.offset)
+            this.topleft.add(canvas_state.offset)
         }
         this.botright = new Vector2(this.topleft.x + image.width, this.topleft.y + image.height)
-        this.width = image.width / dpi
-        this.height = image.height / dpi
+        this.width = image.width
+        this.height = image.height
     }
 
     // Function is used in save_board_state method by stringify function
@@ -450,53 +450,6 @@ function drawCurves() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
-    // Если рисовать тут, то линия нечёткая
-    //ctx.beginPath();
-    //ctx.moveTo(10, 20);
-    //ctx.lineTo(10, 400);
-    //ctx.strokeStyle = "black";
-    //ctx.lineWidth = 1
-    //ctx.stroke();
-    //ctx.closePath();
-
-    //
-
-    // Это чёткая линия
-    // Поймать нужный offset
-//    pixel_x1 = 10
-//    pixel_y1 = 20
-//    pixel_x2 = 10
-//    pixel_y2 = 400
-//
-//    ctx.beginPath();
-//    ctx.moveTo(pixel_x1 + 0.5, pixel_y1 + 0.5);
-//    ctx.lineTo(pixel_x2 + 0.5, pixel_y2 + 0.5);
-//    ctx.strokeStyle = "black";
-//    ctx.lineWidth = 1
-//    ctx.stroke();
-//    ctx.closePath();
-
-    // ЭТО ПИКСЕЛЬНОЕ ПРОСТРАНСТВО ЭКРАНА!
-
-
-    ctx.translate(0.5, 0.5)
-
-    for(let x = 11;x <= 1910; x+=2){
-        pixel_y1 = 20
-        pixel_y2 = 100
-        ctx.beginPath();
-        ctx.moveTo(x, pixel_y1);
-        ctx.lineTo(x, pixel_y2);
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 1
-        ctx.stroke();
-        ctx.closePath();
-    }
-
-    ctx.translate(-0.5, -0.5)
-
-    //console.log(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
-
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
 
@@ -535,36 +488,84 @@ function drawCurves() {
 
                 let odd_offset = (elem.width % 2) * 0.5
 
-                let pt = elem.points[0]
-                ctx.beginPath();
-                ctx.moveTo(Math.round((pt.x-canvas_state.offset.x) * scale), Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset);
-                for (let j = 1; j < elem.points.length; j++) {
-                    let new_pt = elem.points[j]
-                    //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                    ctx.lineTo(Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset, Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset)
-                    pt = new_pt;
+                if (false) { // ЛОМАНАЯ
+                    let pt = elem.points[0]
+                    let pt_x = Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset
+                    let pt_y = Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset
+                    ctx.beginPath()
+                    ctx.moveTo(pt_x, pt_y)
+                    for (let j = 1; j < elem.points.length; j++) {
+                        ctx.lineTo(pt_x, pt_y)
+                        pt = elem.points[j];
+                        pt_x = Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset
+                        pt_y = Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset
+                    }
+
+                    // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
+                    // Иначе они не однотонные
+                    ctx.lineTo(pt_x, pt_y)
+                    ctx.strokeStyle = elem.color
+                    ctx.lineWidth = elem.width
+                    ctx.stroke()
+                    ctx.closePath()
+                }else{ // КВАДРАТИЧНАЯ АПРОКСИМАЦИЯ
+
+                    let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
+                    let pt_y_raw = (elem.points[0].y - canvas_state.offset.y) * scale
+                    let pt_x = Math.round(pt_x_raw) + odd_offset
+                    let pt_y = Math.round(pt_y_raw) + odd_offset
+                    ctx.beginPath()
+                    ctx.moveTo(pt_x, pt_y)
+                    for (let j = 1; j < elem.points.length; j++) {
+                        //ctx.lineTo(pt_x, pt_y)
+                        let new_x_raw = (elem.points[j].x - canvas_state.offset.x) * scale
+                        let new_y_raw = (elem.points[j].y - canvas_state.offset.y) * scale
+                        let new_x = Math.round(new_x_raw) + odd_offset
+                        let new_y = Math.round(new_y_raw) + odd_offset
+                        ctx.quadraticCurveTo(pt_x, pt_y, Math.round((new_x_raw + pt_x_raw) / 2) + odd_offset, Math.round((new_y_raw + pt_y_raw) / 2) + odd_offset)
+
+                        pt_x_raw = new_x_raw
+                        pt_y_raw = new_y_raw
+                        pt_x = new_x
+                        pt_y = new_y
+                    }
+
+                    // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
+                    // Иначе они не однотонные
+                    ctx.lineTo(pt_x, pt_y)
+                    ctx.strokeStyle = elem.color
+                    ctx.lineWidth = elem.width
+                    ctx.stroke()
+                    ctx.closePath()
                 }
-
-                // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
-                // Иначе они не однотонные
-                ctx.lineTo(Math.round(pt.x*scale-canvas_state.offset.x * scale) + odd_offset, Math.round(pt.y*scale-canvas_state.offset.y * scale) + odd_offset)
-                ctx.strokeStyle = elem.color
-                ctx.lineWidth = elem.width
-                ctx.stroke()
-                ctx.closePath()
-
             }
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
+
+// Границы изображения
+//            ctx.beginPath();
+//            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+//            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+//            ctx.strokeStyle = "red"
+//            ctx.lineWidth = 10
+//            ctx.stroke()
+//            ctx.closePath()
+//
+//            ctx.beginPath();
+//            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+//            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+//            ctx.strokeStyle = "blue"
+//            ctx.lineWidth = 10
+//            ctx.stroke()
+//            ctx.closePath()
 
             // TODO: make round topleft for different dpi to make it sharp.
             // it makes sense to recalculate topleft for every image on dpi change
+            //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            // ERROR: Что-то не так со скейлом изображений!
-//            ctx.setTransform(scale * dpi, 0, 0, scale * dpi, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
-//
-//            //elem.topleft.mul(dpi).round().mul(1 / dpi)
-//            ctx.drawImage(elem.image, elem.topleft.x, elem.topleft.y, elem.width, elem.height)
+            ctx.setTransform(1, 0, 0, 1, 0, 0)
+            ctx.drawImage(elem.image, Math.round((elem.topleft.x - canvas_state.offset.x) * scale), Math.round((elem.topleft.y - canvas_state.offset.y) * scale), Math.round(elem.width * scale), Math.round(elem.height * scale))
         }
     }
 }
