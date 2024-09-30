@@ -43,16 +43,16 @@ class MyImage {
             this.topleft = topleft.cpy()
         }else {
             // Cursor position
-            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale)
+            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale / dpi)
             // the formulas below are needed so that topleft of the image is placed exactly into the pixel after scale
             // dpi = wheel_scale * scale
-            this.topleft.x -= image.width * 0.5
-            this.topleft.y -= image.height * 0.5
+            this.topleft.x -= image.width * 0.5 / dpi
+            this.topleft.y -= image.height * 0.5 / dpi
             this.topleft.add(canvas_state.offset)
         }
-        this.botright = new Vector2(this.topleft.x + image.width, this.topleft.y + image.height)
-        this.width = image.width
-        this.height = image.height
+        this.botright = new Vector2(this.topleft.x + image.width / dpi, this.topleft.y + image.height / dpi)
+//        this.width = image.width
+//        this.height = image.height
     }
 
     // Function is used in save_board_state method by stringify function
@@ -544,27 +544,27 @@ function drawCurves() {
             ctx.setTransform(1, 0, 0, 1, 0, 0)
 
 // Границы изображения
-//            ctx.beginPath();
-//            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
-//            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
-//            ctx.strokeStyle = "red"
-//            ctx.lineWidth = 10
-//            ctx.stroke()
-//            ctx.closePath()
-//
-//            ctx.beginPath();
-//            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
-//            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
-//            ctx.strokeStyle = "blue"
-//            ctx.lineWidth = 10
-//            ctx.stroke()
-//            ctx.closePath()
+            ctx.beginPath();
+            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+            ctx.strokeStyle = "red"
+            ctx.lineWidth = 10
+            ctx.stroke()
+            ctx.closePath()
+
+            ctx.beginPath();
+            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+            ctx.strokeStyle = "blue"
+            ctx.lineWidth = 10
+            ctx.stroke()
+            ctx.closePath()
 
             // it makes sense to recalculate topleft for every image on dpi change
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
             ctx.setTransform(1, 0, 0, 1, 0, 0)
-            ctx.drawImage(elem.image, Math.round((elem.topleft.x - canvas_state.offset.x) * scale), Math.round((elem.topleft.y - canvas_state.offset.y) * scale), Math.round(elem.width * scale), Math.round(elem.height * scale))
+            ctx.drawImage(elem.image, Math.round((elem.topleft.x - canvas_state.offset.x) * scale), Math.round((elem.topleft.y - canvas_state.offset.y) * scale), Math.round((elem.botright.x - elem.topleft.x) * scale), Math.round((elem.botright.y - elem.topleft.y) * scale))
         }
     }
 }
