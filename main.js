@@ -244,7 +244,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 1,
+    lineWidth: 2,
     tool: "pencil",
     flags: {
         spacebar: false,
@@ -280,8 +280,8 @@ let dpi = devicePixelRatio
 function setCanvasWidthHeight() {
     canvas = document.getElementById('can')
     dpi = devicePixelRatio
-    //scale = dpi / wheel_scale
-    scale = 1 / wheel_scale
+    scale = dpi / wheel_scale
+    //scale = 1 / wheel_scale
     canvas.width = Math.round(window.innerWidth * dpi)
     canvas.height = Math.round(window.innerHeight * dpi)
     ctx = canvas.getContext("2d")
@@ -359,8 +359,8 @@ function init() {
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
             zoom(Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
-            canvas_state.offset.x += e.deltaX * wheel_scale
-            canvas_state.offset.y += e.deltaY * wheel_scale
+            canvas_state.offset.x += e.deltaX * wheel_scale / dpi
+            canvas_state.offset.y += e.deltaY * wheel_scale / dpi
             drawCurves()
         }
     }, false)
@@ -421,7 +421,7 @@ function redo() {
     drawCurves();
 }
 
-function zoom(speed, reset_scale= false){
+function zoom(speed, reset_scale=false) {
     let whs = wheel_scale;
     if (reset_scale) {
         wheel_scale = 1;
@@ -434,12 +434,12 @@ function zoom(speed, reset_scale= false){
 
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
     if (wheel_scale !== whs) {
-        canvas_state.offset.sub(canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale - whs))
+        canvas_state.offset.sub(canvas_state.current_screen_pixel_pos.cpy().mul((wheel_scale - whs) / dpi))
         // this is done so that we are shifting canvas only by integer pixels on the screen
         // Otherwise there will be a blur
         //canvas_state.offset.mul(dpi).round().mul(1 / dpi)
-        scale = dpi / wheel_scale;
-        scale = 1 / wheel_scale
+        scale = dpi / wheel_scale
+        //scale = 1 / wheel_scale
         drawCurves();
     }
 }
@@ -583,7 +583,7 @@ function pointermove(e) {
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
-        canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(wheel_scale).add(start_offset)
+        canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(wheel_scale / dpi).add(start_offset)
         drawCurves()
 
         return
@@ -596,7 +596,7 @@ function pointermove(e) {
     }
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale).add(canvas_state.offset)
+    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale / dpi).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
         // Если что-то рисуем, то буфер отката обнуляется
@@ -610,7 +610,6 @@ function pointermove(e) {
 
             curve.push(pt)
         }else{
-            // We add a point only if it is different from the previous one
             let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
 
             if (canvas_state.flags.shift) {
@@ -640,9 +639,10 @@ function pointermove(e) {
                 pt.y = lastpt.y + B * t
 
                 // TODO: Добавить прорисовку опорной прямой пунктиром
-
                 curve.push(pt)
             }else if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
+                // Хотим добавлять ещё одну точку в прямую. Если все три образуют очень тупой треугольник, то нахер надо?
+                // Логично при рисовке убирать именно по углу треугольника, т.к. большой угол = круче парабола.
                 curve.push(pt)
             }
         }
@@ -743,59 +743,59 @@ function erase() {
     canvas_state.flag_curve_ended = true
 }
 
-function testDPI() {
-    //ctx.scale(1/scale, 1/scale)
-    ctx.fillRect(2,2,1,1);
-    ctx.fillRect(4,2,1,1);
-    ctx.fillRect(6,2,2,2);
-    ctx.fillRect(10.5,2,2,2);
-    //ctx.scale(scale, scale)
-
-    ctx.beginPath();
-    ctx.moveTo(200, 200);
-    ctx.lineTo(300, 300);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(300, 200);
-    ctx.lineTo(400, 200);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.scale(dpi, dpi)
-    ctx.translate(-canvas_state.offset.x, -canvas_state.offset.y)
-    ctx.lineWidth = canvas_state.lineWidth / dpi
-
-
-    //if (canvas_state.lineWidth % 2 === 1)
-    //    ctx.translate(-0.5, -0.5)
-
-    ctx.beginPath();
-    ctx.moveTo(500+200, 200);
-    ctx.lineTo(500+300, 300);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(500+300, 200);
-    ctx.lineTo(500+400, 200);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(500+300, 203);
-    ctx.lineTo(500+400, 203);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(500+300, 205);
-    ctx.lineTo(500+400, 205);
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.lineWidth = canvas_state.lineWidth
-    ctx.translate(canvas_state.offset.x, canvas_state.offset.y)
-    ctx.scale(1/dpi, 1/dpi)
-}
+//function testDPI() {
+//    //ctx.scale(1/scale, 1/scale)
+//    ctx.fillRect(2,2,1,1);
+//    ctx.fillRect(4,2,1,1);
+//    ctx.fillRect(6,2,2,2);
+//    ctx.fillRect(10.5,2,2,2);
+//    //ctx.scale(scale, scale)
+//
+//    ctx.beginPath();
+//    ctx.moveTo(200, 200);
+//    ctx.lineTo(300, 300);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.beginPath();
+//    ctx.moveTo(300, 200);
+//    ctx.lineTo(400, 200);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.scale(dpi, dpi)
+//    ctx.translate(-canvas_state.offset.x, -canvas_state.offset.y)
+//    ctx.lineWidth = canvas_state.lineWidth / dpi
+//
+//
+//    //if (canvas_state.lineWidth % 2 === 1)
+//    //    ctx.translate(-0.5, -0.5)
+//
+//    ctx.beginPath();
+//    ctx.moveTo(500+200, 200);
+//    ctx.lineTo(500+300, 300);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.beginPath();
+//    ctx.moveTo(500+300, 200);
+//    ctx.lineTo(500+400, 200);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.beginPath();
+//    ctx.moveTo(500+300, 203);
+//    ctx.lineTo(500+400, 203);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.beginPath();
+//    ctx.moveTo(500+300, 205);
+//    ctx.lineTo(500+400, 205);
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.lineWidth = canvas_state.lineWidth
+//    ctx.translate(canvas_state.offset.x, canvas_state.offset.y)
+//    ctx.scale(1/dpi, 1/dpi)
+//}
