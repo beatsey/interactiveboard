@@ -484,7 +484,7 @@ function drawCurves() {
                     ctx.translate(-0.5, -0.5)
             }else{
                 //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
-                ctx.setTransform(1, 0, 0, 1, 0, 0)
+                //ctx.setTransform(1, 0, 0, 1, 0, 0)
 
                 let odd_offset = (elem.width % 2) * 0.5
 
@@ -541,30 +541,34 @@ function drawCurves() {
             }
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
-            ctx.setTransform(1, 0, 0, 1, 0, 0)
+            //ctx.setTransform(1, 0, 0, 1, 0, 0)
 
 // Границы изображения
-            ctx.beginPath();
-            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
-            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
-            ctx.strokeStyle = "red"
-            ctx.lineWidth = 10
-            ctx.stroke()
-            ctx.closePath()
-
-            ctx.beginPath();
-            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
-            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
-            ctx.strokeStyle = "blue"
-            ctx.lineWidth = 10
-            ctx.stroke()
-            ctx.closePath()
+//            ctx.beginPath();
+//            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+//            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
+//            ctx.strokeStyle = "red"
+//            ctx.lineWidth = 10
+//            ctx.stroke()
+//            ctx.closePath()
+//
+//            ctx.beginPath();
+//            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+//            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
+//            ctx.strokeStyle = "blue"
+//            ctx.lineWidth = 10
+//            ctx.stroke()
+//            ctx.closePath()
 
             // it makes sense to recalculate topleft for every image on dpi change
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            ctx.setTransform(1, 0, 0, 1, 0, 0)
-            ctx.drawImage(elem.image, Math.round((elem.topleft.x - canvas_state.offset.x) * scale), Math.round((elem.topleft.y - canvas_state.offset.y) * scale), Math.round((elem.botright.x - elem.topleft.x) * scale), Math.round((elem.botright.y - elem.topleft.y) * scale))
+            let topleft_x = Math.round((elem.topleft.x - canvas_state.offset.x) * scale)
+            let topleft_y = Math.round((elem.topleft.y - canvas_state.offset.y) * scale)
+            let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
+            let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
+
+            ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
         }
     }
 }
