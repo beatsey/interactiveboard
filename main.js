@@ -560,7 +560,6 @@ function drawCurves() {
 //            ctx.stroke()
 //            ctx.closePath()
 
-            // TODO: make round topleft for different dpi to make it sharp.
             // it makes sense to recalculate topleft for every image on dpi change
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
