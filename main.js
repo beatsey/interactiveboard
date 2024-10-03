@@ -1,4 +1,8 @@
 // noinspection JSBitwiseOperatorUsage
+
+// TODO: Использовать localStorage
+// TODO: Использовать IndexedDB, хранить в бинарном виде что хранится
+
 class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -481,12 +485,10 @@ function drawCurves() {
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
 
-        /* TODO:
-        * only if bounding box is intersecting with current canvas
-        * */
+        // TODO: рисуем объект только если его bbox пересекается с видимым экраном
 
         if(elem.type === 'curve') {
-            if(false){
+            if(false) {
 //                if (elem.width % 2 === 1)
 //                    ctx.translate(0.5, 0.5)
 
@@ -545,11 +547,14 @@ function drawCurves() {
                     ctx.beginPath()
                     ctx.moveTo(pt_x, pt_y)
                     for (let j = 1; j < elem.points.length; j++) {
-                        //ctx.lineTo(pt_x, pt_y)
                         let new_x_raw = (elem.points[j].x - canvas_state.offset.x) * scale
                         let new_y_raw = (elem.points[j].y - canvas_state.offset.y) * scale
                         let new_x = Math.round(new_x_raw) + odd_offset
                         let new_y = Math.round(new_y_raw) + odd_offset
+                        if ((new_x - pt_x) * (new_x - pt_x) + (new_y - pt_y) * (new_y - pt_y) <= 0.01 * elem.width * elem.width) {
+                            continue
+                        }
+
                         ctx.quadraticCurveTo(pt_x, pt_y, Math.round((new_x_raw + pt_x_raw) / 2) + odd_offset, Math.round((new_y_raw + pt_y_raw) / 2) + odd_offset)
 
                         pt_x_raw = new_x_raw
@@ -755,7 +760,7 @@ function save_board_state() {
     // Serialize canvas_state object to a file
     // Then read it back to restore session. If board was dragging then end it.
 
-    let bl = new Blob([JSON.stringify(canvas_state)], {
+    let bl = new Blob([JSON.stringify(canvas_state.curvesandimages)], {
         type: "text/html"
     })
     console.log(bl);
