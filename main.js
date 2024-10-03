@@ -362,13 +362,14 @@ function init() {
     }, false)
 
     addEventListener('keydown', e => {
+        console.log(e)
         if (!canvas_state.flags.spacebar && e.key === " ") {
             canvas_state.flags.spacebar = true
         }
         if (!canvas_state.flags.spacebar && e.key === "Shift") {
             canvas_state.flags.shift = true
         }
-        else if (e.ctrlKey || e.metaKey) {
+        else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
                     zoom(-40) // zoom in
