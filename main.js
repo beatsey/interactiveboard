@@ -43,7 +43,7 @@ class MyImage {
             this.topleft = topleft.cpy()
         }else {
             // Cursor position
-            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale / dpi)
+            this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
             // the formulas below are needed so that topleft of the image is placed exactly into the pixel after scale
             // dpi = wheel_scale * scale
             this.topleft.x -= image.width * 0.5 / dpi
@@ -255,7 +255,8 @@ let canvas_state = {
         shift: false
     },
     // current position on the screen in pixels (without the offset)
-    current_screen_pixel_pos: new Vector2(0,0)
+    current_screen_pixel_pos: new Vector2(0, 0),
+    previous_screen_holst_pos: new Vector2(0, 0)
 }
 
 // Function checks whether dragging should be done and starts / stops it automatically
@@ -359,8 +360,8 @@ function init() {
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
             zoom(Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
-            canvas_state.offset.x += e.deltaX * wheel_scale / dpi
-            canvas_state.offset.y += e.deltaY * wheel_scale / dpi
+            canvas_state.offset.x += 1.2 * e.deltaX / scale
+            canvas_state.offset.y += 1.2 * e.deltaY / scale // += e.deltaY * wheel_scale / dpi
             drawCurves()
         }
     }, false)
@@ -578,6 +579,29 @@ function register_click(e) {
     canvas_state.flags.right_click = e.buttons & 2
 }
 
+function segment_intersection(m0,m1,m2,m3) {
+    let det = (m0.x - m1.x) * (m3.y - m2.y) - (m3.x - m2.x) * (m0.y - m1.y)
+    if (det == 0) return false
+
+    let a = (m3.x - m1.x) * (m3.y - m2.y) - (m3.x - m2.x) * (m3.y - m1.y)
+    if (det > 0) {
+        if(a < 0 || a > det) return false
+
+        let b = (m0.x - m1.x) * (m3.y - m1.y) - (m3.x - m1.x) * (m0.y - m1.y)
+        if(b < 0 || b > det) return false
+    }
+    else{
+        if(a > 0 || a < det) return false
+
+        let b = (m0.x - m1.x) * (m3.y - m1.y) - (m3.x - m1.x) * (m0.y - m1.y)
+        if(b > 0 || b < det) return false
+    }
+
+    return true
+}
+
+eraser_curve = []
+
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
     check_dragging()
@@ -587,9 +611,8 @@ function pointermove(e) {
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
-        canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(wheel_scale / dpi).add(start_offset)
+        canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(1 / scale).add(start_offset)
         drawCurves()
-
         return
     }
 
@@ -600,7 +623,7 @@ function pointermove(e) {
     }
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(wheel_scale / dpi).add(canvas_state.offset)
+    let pt = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
         // Если что-то рисуем, то буфер отката обнуляется
@@ -651,46 +674,36 @@ function pointermove(e) {
             }
         }
     }else if(canvas_state.tool == "eraser") {
+        //console.log(canvas_state.previous_screen_holst_pos.x, pt.x, canvas_state.flag_curve_ended)
+        // Ищем пересечения отрезка [lastpt, pt] с кривыми.
+        // TODO: Оптимизация: только с пересекающимся bounding box'ом
         if (canvas_state.flag_curve_ended) {
-            let curve = new Curve;
-            canvas_state.curvesandimages.push(curve);
-            canvas_state.flag_curve_ended = false;
+            canvas_state.flag_curve_ended = false
+        }
+        else
+        for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--){
+            if(canvas_state.curvesandimages[i].type != "curve") continue
 
-            curve.push(pt)
-        }else{
-            let lastpt = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1].points[0]
+            let pts = canvas_state.curvesandimages[i].points
+            let is_intersect = false
+            for(let p=1;p<pts.length;p++) {
+                // Проверяем пересечение отрезка [pts[p-1], pts[p]] с отрезком [lastpt, pt]
 
-            // Ищем пересечения отрезка [lastpt, pt] с кривыми.
-            // TODO: Оптимизация: только с пересекающимся bounding box'ом
-            for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--){
-                if(canvas_state.curvesandimages[i].type != "curve") continue
-
-                let pts = canvas_state.curvesandimages[i].points
-                let is_intersect = false
-                for(let p=1;p<pts.length;p++) {
-                    // Проверяем пересечение отрезка [pts[p-1], pts[p]] с отрезком [lastpt, pt]
-                    let orientation = (p,q,r) => Math.sign((q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y))
-
-                    let o1 = orientation(pts[p - 1], pts[p], lastpt)
-                    let o2 = orientation(pts[p - 1], pts[p], pt)
-                    let o3 = orientation(lastpt, pt, pts[p - 1])
-                    let o4 = orientation(lastpt, pt, pts[p])
-
-                    if (o1 != o2 && o3 != o4) {
-                        is_intersect = true
-                        break
-                    }
+                if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)){
+                    is_intersect = true
+                    break
                 }
+            }
 
-                if (is_intersect) { // Нашли пересечение с кривой, удаляем
-                    canvas_state.curvesandimages.splice(i, 1)
-                    // TODO: Добавить возможность сохранения в историю для отката
-                }
+            if (is_intersect) { // Нашли пересечение с кривой, удаляем
+                canvas_state.curvesandimages.splice(i, 1)
+                // TODO: Добавить возможность сохранения в историю для отката
             }
         }
     }
 
-    // Рисуем холст
+    // Remember last pt for eraser
+    canvas_state.previous_screen_holst_pos = pt
     drawCurves();
 }
 
