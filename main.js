@@ -674,22 +674,27 @@ function pointermove(e) {
             }
         }
     }else if(canvas_state.tool == "eraser") {
-        //console.log(canvas_state.previous_screen_holst_pos.x, pt.x, canvas_state.flag_curve_ended)
-        // Ищем пересечения отрезка [lastpt, pt] с кривыми.
-        // TODO: Оптимизация: только с пересекающимся bounding box'ом
+        // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
         if (canvas_state.flag_curve_ended) {
             canvas_state.flag_curve_ended = false
         }
         else
-        for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--){
-            if(canvas_state.curvesandimages[i].type != "curve") continue
+        for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--) {
+            let figure = canvas_state.curvesandimages[i]
+            if(figure.type != "curve") continue
+
+            if (
+                Math.min(pt.x,canvas_state.previous_screen_holst_pos.x) > figure.botright.x ||
+                Math.max(pt.x,canvas_state.previous_screen_holst_pos.x) < figure.topleft.x ||
+                Math.max(pt.y,canvas_state.previous_screen_holst_pos.y) < figure.topleft.y ||
+                Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y
+            ) continue
 
             let pts = canvas_state.curvesandimages[i].points
             let is_intersect = false
             for(let p=1;p<pts.length;p++) {
-                // Проверяем пересечение отрезка [pts[p-1], pts[p]] с отрезком [lastpt, pt]
-
-                if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)){
+                // Проверяем пересечение отрезков
+                if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)) {
                     is_intersect = true
                     break
                 }
@@ -700,10 +705,11 @@ function pointermove(e) {
                 // TODO: Добавить возможность сохранения в историю для отката
             }
         }
+
+        // Remember last pt for eraser
+        canvas_state.previous_screen_holst_pos = pt
     }
 
-    // Remember last pt for eraser
-    canvas_state.previous_screen_holst_pos = pt
     drawCurves();
 }
 
