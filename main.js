@@ -239,7 +239,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 2,
+    lineWidth: 20,
     tool: "pencil",
     flags: {
         spacebar: false,
@@ -269,6 +269,9 @@ function check_dragging() {
 let start_screen
 let start_offset
 
+let prev_board_width = undefined
+let prev_board_height = undefined
+
 // Current scale that can be changed with wheel
 let wheel_scale = 1
 let scale = 1
@@ -278,10 +281,22 @@ function setCanvasWidthHeight() {
     dpi = devicePixelRatio
     scale = dpi / wheel_scale
     let st = getComputedStyle(can)
-    canvas.width = Math.round(parseFloat(st.width) * dpi)
-    canvas.height = Math.round(parseFloat(st.height) * dpi)
+    let board_width = parseFloat(st.width) // Ширина в единицах доски
+    let board_height = parseFloat(st.height)
+
+    canvas.width = Math.round(board_width * dpi)
+    canvas.height = Math.round(board_height * dpi)
     ctx = canvas.getContext("2d")
     ctx.lineCap = 'round'
+
+    // Recompute offset so that scale happens around center of the screen
+    if (prev_board_width != undefined) {
+        canvas_state.offset.x -= (board_width - prev_board_width) * 0.5 * wheel_scale
+        canvas_state.offset.y -= (board_height - prev_board_height) * 0.5 * wheel_scale
+    }
+
+    prev_board_width = board_width
+    prev_board_height = board_height
 }
 
 let scrollMoves = {
@@ -353,7 +368,7 @@ function init() {
         }
 
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
-            zoom(Math.max(Math.min(1.5 * e.deltaY, 30), -30))
+            zoom(speed=Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
             canvas_state.offset.x += 1.2 * e.deltaX / scale
             canvas_state.offset.y += 1.2 * e.deltaY / scale // += e.deltaY * wheel_scale / dpi
@@ -372,13 +387,13 @@ function init() {
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
-                    zoom(-40) // zoom in
+                    zoom(speed=-40, pointer_position=false) // zoom in
                     break
                 case 'Minus':
-                    zoom(40) // zoom out
+                    zoom(speed=40, pointer_position=false) // zoom out
                     break
                 case 'Digit0':
-                    zoom(1,true)
+                    zoom(speed=1, pointer_position=false, reset_scale=true)
                     break
                 case 'KeyZ':
                     undo()
@@ -418,7 +433,7 @@ function redo() {
     drawCurves();
 }
 
-function zoom(speed, reset_scale=false) {
+function zoom(speed, pointer_position=true, reset_scale=false) {
     let whs = wheel_scale;
     if (reset_scale) {
         wheel_scale = 1;
@@ -431,12 +446,16 @@ function zoom(speed, reset_scale=false) {
 
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
     if (wheel_scale !== whs) {
-        canvas_state.offset.sub(canvas_state.current_screen_pixel_pos.cpy().mul((wheel_scale - whs) / dpi))
-        // this is done so that we are shifting canvas only by integer pixels on the screen
-        // Otherwise there will be a blur
-        //canvas_state.offset.mul(dpi).round().mul(1 / dpi)
+        let pixel_to_board = (wheel_scale - whs) / dpi
+        if (pointer_position) {
+            canvas_state.offset.x -= canvas_state.current_screen_pixel_pos.x * pixel_to_board
+            canvas_state.offset.y -= canvas_state.current_screen_pixel_pos.y * pixel_to_board
+        }else{
+            canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
+            canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
+        }
+
         scale = dpi / wheel_scale
-        //scale = 1 / wheel_scale
         drawCurves();
     }
 }
@@ -446,6 +465,23 @@ function drawCurves() {
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+
+
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+
+
 
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
