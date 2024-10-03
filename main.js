@@ -44,15 +44,11 @@ class MyImage {
         }else {
             // Cursor position
             this.topleft = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
-            // the formulas below are needed so that topleft of the image is placed exactly into the pixel after scale
-            // dpi = wheel_scale * scale
             this.topleft.x -= image.width * 0.5 / dpi
             this.topleft.y -= image.height * 0.5 / dpi
             this.topleft.add(canvas_state.offset)
         }
         this.botright = new Vector2(this.topleft.x + image.width / dpi, this.topleft.y + image.height / dpi)
-//        this.width = image.width
-//        this.height = image.height
     }
 
     // Function is used in save_board_state method by stringify function
@@ -127,11 +123,13 @@ https://obfuscator.io/
 * Add ctrl+Z and ctrl+Y options to undo / redo. OK
 * Make every curve in a class. Make it contain color, line weight, coordinates, bounding box (top left & bottom right) OK
 * Add tablets (and sensor screens) move around and zoom support OK
-* Add support for the image insertion
+* Add support for the image insertion OK
 * Make sure that shift for the curves with 1px lines to (0.5, 0.5) is performed correctly so that it stays sharp
+* On shift make horizontal, vertical and 45 degrees lines OK
+* Add eraser tool like in zoom or miro. It removes the whole part, not just paints over with white.
+    When eraser is used then we search for intersections only with figures that we have our eraser in their bounding boxes. OK
 
 * FUNCTIONAL:
-* TODO: on shift make horizontal, vertical and 45 degrees lines
 * TODO: when nothing is dragged no need to clear everything! just redraw the last curve
 * TODO: Add the ability to save the board state between the page refreshes in cookies
 * TODO: Add "save" button to download the entire cropped board as an image
@@ -141,10 +139,8 @@ https://obfuscator.io/
 
 * TODO: Add the rectangle selection tool like in Miro to move objects around
 * TODO: Add lines, rectangles, circle support
-*
-* TODO: Add eraser tool like in zoom or miro. It removes the whole part, not just paints over with white.
-    When eraser is used then we search for intersections only with figures that we have our eraser in their bounding boxes.
 * TODO: Add the support for the multiple users at once
+* TODO: Add board share (link & QR)
 * TODO: smartphones support. So that people can use the board on a phone.
 * TODO: make a follow option so that it is easy to use on a phone to see after the teacher
 * TODO: add quick photo upload option from phone
@@ -161,7 +157,6 @@ Ability to render pdf file on board.
 
 * TODO: add text support like in https://app.ziteboard.com/
 
-
 // В начале движения рисовать прямую от последней точки, чтобы не было рывков.
 // Оптимизация: запоминать для рисования линии предыдущий кадр, чтобы заново его не перерисовывать без необходимости.
 // Аналогично, когда происходит движение холста, нет смысла его перерисовывать, можно просто двигать картинку.
@@ -172,11 +167,11 @@ Ability to render pdf file on board.
    (does it really matter tho? I think user should focus on the contents and don't distract on useless info.)
 * TODO: make horizontal and vertical sliders like in miro to show where is the main picture
 
-* TODO: implement my own EGE tasks generator so that the tasks are dynamically generated with an ability to add multiple tasks quick.
-* TODO: generate homework tasks based on what have been done in class.
-* TODO: ability to see how you did similar problems in the past (to review the algorithm).
-* TODO: ability to run excel files (to do tasks from EGE)
-* TODO: ability to run python code
+* TODO: Support for excel files
+* TODO: Support for python code to run!
+* USELESS: implement my own EGE tasks generator so that the tasks are dynamically generated with an ability to add multiple tasks quick.
+* USELESS: generate homework tasks based on what have been done in class.
+* USELESS: ability to see how you did similar problems in the past (to review the algorithm).
 * TODO: add a minimap that shows the drawings to understand where are you on a whole board
 * TODO: Add round menu support with different tools. make it render based on what is inside.
         circle menu like in csgo while holding right mouse button
@@ -282,9 +277,9 @@ function setCanvasWidthHeight() {
     canvas = document.getElementById('can')
     dpi = devicePixelRatio
     scale = dpi / wheel_scale
-    //scale = 1 / wheel_scale
-    canvas.width = Math.round(window.innerWidth * dpi)
-    canvas.height = Math.round(window.innerHeight * dpi)
+    let st = getComputedStyle(can)
+    canvas.width = Math.round(parseFloat(st.width) * dpi)
+    canvas.height = Math.round(parseFloat(st.height) * dpi)
     ctx = canvas.getContext("2d")
     ctx.lineCap = 'round'
 }
