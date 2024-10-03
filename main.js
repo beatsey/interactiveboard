@@ -1,6 +1,4 @@
 // noinspection JSBitwiseOperatorUsage
-// TODO: Сделать масштабирование интерфейса на ctrl + shift + "-"
-// TODO: ctrl + "-" меняет размер только доски
 class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -35,7 +33,6 @@ class Vector2 {
 }
 
 class MyImage {
-    // TODO: make image correct position on scale
     constructor(image, topleft) {
         this.type = 'image'
         this.image = image
@@ -466,22 +463,20 @@ function drawCurves() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
-
-    ctx.beginPath();
-    ctx.moveTo(canvas.width / 2, 0);
-    ctx.lineTo(canvas.width / 2, canvas.height);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.closePath();
-
-    ctx.beginPath();
-    ctx.moveTo(0, canvas.height / 2);
-    ctx.lineTo(canvas.width, canvas.height / 2);
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.closePath();
-
-
+// Cross in the center
+//    ctx.beginPath();
+//    ctx.moveTo(canvas.width / 2, 0);
+//    ctx.lineTo(canvas.width / 2, canvas.height);
+//    ctx.lineWidth = 1;
+//    ctx.stroke();
+//    ctx.closePath();
+//
+//    ctx.beginPath();
+//    ctx.moveTo(0, canvas.height / 2);
+//    ctx.lineTo(canvas.width, canvas.height / 2);
+//    ctx.lineWidth = 1;
+//    ctx.stroke();
+//    ctx.closePath();
 
     for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
         let elem = canvas_state.curvesandimages[i];
