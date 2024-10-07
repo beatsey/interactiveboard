@@ -234,7 +234,7 @@ let canvas, ctx,
 let canvas_state = {
     SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
     curvesandimages:[],
-    undo_curves:[],
+    curvesandimages_len: 0,
     // Флаг равен true, если предыдущая кривая закончена
     flag_curve_ended: true,
 
@@ -327,6 +327,8 @@ function init() {
                 img.src = elem.image
                 elem = new MyImage(img, elem.topleft, elem.botright)
             }
+            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+            canvas_state.curvesandimages_len += 1
             canvas_state.curvesandimages.push(elem)
         }
         drawCurves()
@@ -375,6 +377,8 @@ function init() {
                         topleft.add(canvas_state.offset)
                         let botright = new Vector2(topleft.x + img.width / dpi, topleft.y + img.height / dpi)
 
+                        canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+                        canvas_state.curvesandimages_len += 1
                         canvas_state.curvesandimages.push(new MyImage(img, topleft, botright));
                         drawCurves();
                     };
@@ -451,16 +455,16 @@ function init() {
 
 function undo() {
     // ctrl + z
-    if (canvas_state.curvesandimages.length === 0) return
-    canvas_state.undo_curves.push(canvas_state.curvesandimages.pop())
+    if (canvas_state.curvesandimages_len === 0) return
+    canvas_state.curvesandimages_len -= 1
     canvas_state.flag_curve_ended = true
     drawCurves()
 }
 
 function redo() {
     // ctrl + y
-    if (canvas_state.undo_curves.length === 0) return;
-    canvas_state.curvesandimages.push(canvas_state.undo_curves.pop());
+    if (canvas_state.curvesandimages.length === canvas_state.curvesandimages_len) return;
+    canvas_state.curvesandimages_len += 1
     canvas_state.flag_curve_ended = true;
     drawCurves();
 }
@@ -513,7 +517,7 @@ function drawCurves() {
 //    ctx.stroke();
 //    ctx.closePath();
 
-    for(let i = 0; i < canvas_state.curvesandimages.length; i++) {
+    for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.curvesandimages[i];
 
         // TODO: рисуем объект только если его bbox пересекается с видимым экраном
@@ -689,12 +693,12 @@ function pointermove(e) {
     let pt = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
-        // Если что-то рисуем, то буфер отката обнуляется
-        canvas_state.undo_curves = [];
 
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
         if (canvas_state.flag_curve_ended) {
             let curve = new Curve;
+            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+            canvas_state.curvesandimages_len += 1
             canvas_state.curvesandimages.push(curve);
             canvas_state.flag_curve_ended = false;
 
@@ -791,9 +795,7 @@ function save_board_state() {
     // Serialize canvas_state object to a file
     // Then read it back to restore session. If board was dragging then end it.
 
-    let bl = new Blob([JSON.stringify(canvas_state.curvesandimages)], {
-        type: "text/html"
-    })
+    let bl = new Blob([JSON.stringify(canvas_state.curvesandimages)], {type: "application/json"})
     console.log(bl);
     let a = document.createElement("a");
     a.href = URL.createObjectURL(bl);
@@ -805,6 +807,7 @@ function save_board_state() {
     a.click();
 
 }
+
 function load_board_state() {
     // Open file fialog, then read a file.
     // Load what's inside to display.
@@ -823,9 +826,8 @@ function pickeraser(obj){
 
 function erase() {
     ctx.setTransform(1,0,0,1,0,0)
-    ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1);
-    canvas_state.curvesandimages = [];
-    canvas_state.undo_curves = []
+    ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+    canvas_state.curvesandimages_len = 0
     canvas_state.flag_curve_ended = true
 }
 
