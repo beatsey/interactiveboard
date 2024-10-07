@@ -827,6 +827,7 @@ function pickeraser(obj){
 function erase() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+    canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len = 0
     canvas_state.flag_curve_ended = true
 }
