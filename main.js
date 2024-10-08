@@ -325,7 +325,7 @@ function init() {
                 img.onload = drawCurves
                 elem = new MyImage(img, elem.topleft, elem.botright)
             }
-            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+//            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
             canvas_state.curvesandimages.push(elem)
         }
@@ -771,6 +771,7 @@ function pointermove(e) {
 
             if (is_intersect) { // Нашли пересечение с кривой, удаляем
                 let array = canvas_state.curvesandimages.splice(i, 1)
+                canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
                 canvas_state.curvesandimages.push({"type": "deleted", "index": i, "array": array})
                 // TODO: Добавить возможность сохранения в историю для отката
                 // !!!TODO: Нужно добавить действие об удалении в конец. Его тоже нужно уметь отменить через ctrl + z undo()
