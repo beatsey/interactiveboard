@@ -325,6 +325,7 @@ function init() {
             if (elem.type == "image"){
                 let img = new Image()
                 img.src = elem.image
+                img.onload = drawCurves
                 elem = new MyImage(img, elem.topleft, elem.botright)
             }
             canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
@@ -459,8 +460,10 @@ function undo() {
 
     let undo_action = canvas_state.curvesandimages[canvas_state.curvesandimages_len - 1]
     if (undo_action.type == "deleted") {
-        canvas_state.curvesandimages.splice(undo_action.index, 0, undo_action.elem)
-    }else{
+        canvas_state.curvesandimages.splice(undo_action.index, 0, ...undo_action.array)
+        canvas_state.curvesandimages_len += undo_action.array.length - 1
+    }
+    else{
         // Reduce length only for NOT deleted
         canvas_state.curvesandimages_len -= 1
     }
@@ -474,7 +477,8 @@ function redo() {
     if (canvas_state.curvesandimages.length === canvas_state.curvesandimages_len) return;
     let action = canvas_state.curvesandimages[canvas_state.curvesandimages_len]
     if (action.type == "deleted") {
-        canvas_state.curvesandimages.splice(action.index, 1)
+        canvas_state.curvesandimages.splice(action.index, action.array.length)
+        canvas_state.curvesandimages_len -= action.array.length - 1
     }else{
         // Increase object length only for NOT deleted
         canvas_state.curvesandimages_len += 1
@@ -785,8 +789,8 @@ function pointermove(e) {
             }
 
             if (is_intersect) { // Нашли пересечение с кривой, удаляем
-                let elem = canvas_state.curvesandimages.splice(i, 1)[0]
-                canvas_state.curvesandimages.push({"type": "deleted", "index": i, "elem": elem})
+                let array = canvas_state.curvesandimages.splice(i, 1)
+                canvas_state.curvesandimages.push({"type": "deleted", "index": i, "array": array})
                 // TODO: Добавить возможность сохранения в историю для отката
                 // !!!TODO: Нужно добавить действие об удалении в конец. Его тоже нужно уметь отменить через ctrl + z undo()
             }
@@ -846,8 +850,12 @@ function pickeraser(obj) {
 function erase() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+
     canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
-    canvas_state.curvesandimages_len = 0
+
+    let arr = canvas_state.curvesandimages
+    canvas_state.curvesandimages = [{"type": "deleted", "index": 0, "array": arr}]
+    canvas_state.curvesandimages_len = 1
     canvas_state.flag_curve_ended = true
     // TODO: на самом деле тут нужно добавить глобальное удаление всей доски как отменяемое действие в canvas_state.curvesandimages[0]
 }
