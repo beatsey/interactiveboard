@@ -46,7 +46,6 @@ class Vector2 {
 
 class MyImage {
     type = 'image'
-    // TODO: Сделать конструктор в один!
     constructor(image, topleft, botright) {
         this.image = image
         this.topleft = topleft
@@ -235,15 +234,13 @@ let canvas_state = {
     SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
     curvesandimages:[],
     curvesandimages_len: 0,
-    // Флаг равен true, если предыдущая кривая закончена
-    flag_curve_ended: true,
-
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
     lineWidth: 20,
     tool: "pencil",
     flags: {
+        curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
         spacebar: false,
         dragging: false,
         right_click: false,
@@ -395,7 +392,6 @@ function init() {
     })
 
     canvas.addEventListener('wheel', function(e) {
-        //console.log(wheel_scale)
         e.preventDefault()
 
         // We classify mouse / trackpad by the initial e.wheelDeltaY speed
@@ -408,7 +404,7 @@ function init() {
             zoom(speed=Math.max(Math.min(1.5 * e.deltaY, 30), -30))
         } else {
             canvas_state.offset.x += 1.2 * e.deltaX / scale
-            canvas_state.offset.y += 1.2 * e.deltaY / scale // += e.deltaY * wheel_scale / dpi
+            canvas_state.offset.y += 1.2 * e.deltaY / scale
             drawCurves()
         }
     }, false)
@@ -468,7 +464,7 @@ function undo() {
         canvas_state.curvesandimages_len -= 1
     }
 
-    canvas_state.flag_curve_ended = true
+    canvas_state.flags.curve_ended = true
     drawCurves()
 }
 
@@ -484,7 +480,7 @@ function redo() {
         canvas_state.curvesandimages_len += 1
     }
 
-    canvas_state.flag_curve_ended = true;
+    canvas_state.flags.curve_ended = true;
     drawCurves();
 }
 
@@ -521,26 +517,12 @@ function drawCurves() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
-// Cross in the center
-//    ctx.beginPath();
-//    ctx.moveTo(canvas.width / 2, 0);
-//    ctx.lineTo(canvas.width / 2, canvas.height);
-//    ctx.lineWidth = 1;
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.beginPath();
-//    ctx.moveTo(0, canvas.height / 2);
-//    ctx.lineTo(canvas.width, canvas.height / 2);
-//    ctx.lineWidth = 1;
-//    ctx.stroke();
-//    ctx.closePath();
+//    drawCrossScreenCenter()
 
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.curvesandimages[i];
 
         // TODO: рисуем объект только если его bbox пересекается с видимым экраном
-
         if(elem.type === 'curve') {
             if(false) {
 //                if (elem.width % 2 === 1)
@@ -647,7 +629,6 @@ function drawCurves() {
 //            ctx.stroke()
 //            ctx.closePath()
 
-            // it makes sense to recalculate topleft for every image on dpi change
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
             let topleft_x = Math.round((elem.topleft.x - canvas_state.offset.x) * scale)
@@ -704,7 +685,7 @@ function pointermove(e) {
 
     if (!canvas_state.flags.left_click) {
         // Левая кнопка мыши не нажата
-        canvas_state.flag_curve_ended = true
+        canvas_state.flags.curve_ended = true
         return
     }
 
@@ -712,14 +693,13 @@ function pointermove(e) {
     let pt = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
-
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
-        if (canvas_state.flag_curve_ended) {
+        if (canvas_state.flags.curve_ended) {
             let curve = new Curve;
             canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
             canvas_state.curvesandimages.push(curve);
-            canvas_state.flag_curve_ended = false;
+            canvas_state.flags.curve_ended = false;
 
             curve.push(pt)
         }else{
@@ -763,8 +743,8 @@ function pointermove(e) {
         // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
 
         // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
-        if (canvas_state.flag_curve_ended) {
-            canvas_state.flag_curve_ended = false
+        if (canvas_state.flags.curve_ended) {
+            canvas_state.flags.curve_ended = false
         }
         else
         for(let i=canvas_state.curvesandimages.length - 1;i>=0;i--) {
@@ -825,10 +805,8 @@ function save_board_state() {
     a.download = "data.json";
     a.hidden = true;
     document.body.appendChild(a);
-    a.innerHTML =
-        "someinnerhtml";
+    a.innerHTML = "someinnerhtml";
     a.click();
-
 }
 
 function load_board_state() {
@@ -856,9 +834,26 @@ function erase() {
     let arr = canvas_state.curvesandimages
     canvas_state.curvesandimages = [{"type": "deleted", "index": 0, "array": arr}]
     canvas_state.curvesandimages_len = 1
-    canvas_state.flag_curve_ended = true
-    // TODO: на самом деле тут нужно добавить глобальное удаление всей доски как отменяемое действие в canvas_state.curvesandimages[0]
+    canvas_state.flags.curve_ended = true
 }
+
+function drawCrossScreenCenter() {
+    // Cross in the center
+    ctx.beginPath();
+    ctx.moveTo(canvas.width / 2, 0);
+    ctx.lineTo(canvas.width / 2, canvas.height);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height / 2);
+    ctx.lineTo(canvas.width, canvas.height / 2);
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+}
+
 
 //function testDPI() {
 //    //ctx.scale(1/scale, 1/scale)
