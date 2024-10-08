@@ -400,17 +400,18 @@ function init() {
             scrollMoves.lastTimestamp = e.timeStamp
         }
 
+        const current_browser_zoom = outerWidth/innerWidth
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
-            zoom(speed=Math.max(Math.min(1.5 * e.deltaY, 30), -30))
+            zoom(speed=Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30))
         } else {
-            canvas_state.offset.x += 1.2 * e.deltaX / scale
-            canvas_state.offset.y += 1.2 * e.deltaY / scale
+            canvas_state.offset.x += 1.2 * e.deltaX / scale * current_browser_zoom
+            canvas_state.offset.y += 1.2 * e.deltaY / scale * current_browser_zoom
             drawCurves()
         }
     }, false)
 
     addEventListener('keydown', e => {
-        console.log(e)
+//        console.log(e)
         if (!canvas_state.flags.spacebar && e.key === " ") {
             canvas_state.flags.spacebar = true
         }
