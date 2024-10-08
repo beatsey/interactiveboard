@@ -185,7 +185,7 @@ Ability to render pdf file on board.
     Smooth parametric interpolation. So that on slow movement there is no artefacts
     try bezierCurveTo and quadraticCurveTo from standard canvas package
 Сейчас при маленькой скорости движения мыши появляется слишком много точек и линия получается ребристая.
-Сделать так, чтобы линия не зависила от скорости, чтобы слишком частые точки игнорировались, а линия смягчалась.
+Сделать так, чтобы линия не зависела от скорости, чтобы слишком частые точки игнорировались, а линия смягчалась.
 
 -------------------------------------
 
@@ -456,7 +456,15 @@ function init() {
 function undo() {
     // ctrl + z
     if (canvas_state.curvesandimages_len === 0) return
-    canvas_state.curvesandimages_len -= 1
+
+    let undo_action = canvas_state.curvesandimages[canvas_state.curvesandimages_len - 1]
+    if (undo_action.type == "deleted") {
+        canvas_state.curvesandimages.splice(undo_action.index, 0, undo_action.elem)
+    }else{
+        // Reduce length only for NOT deleted
+        canvas_state.curvesandimages_len -= 1
+    }
+
     canvas_state.flag_curve_ended = true
     drawCurves()
 }
@@ -464,7 +472,14 @@ function undo() {
 function redo() {
     // ctrl + y
     if (canvas_state.curvesandimages.length === canvas_state.curvesandimages_len) return;
-    canvas_state.curvesandimages_len += 1
+    let action = canvas_state.curvesandimages[canvas_state.curvesandimages_len]
+    if (action.type == "deleted") {
+        canvas_state.curvesandimages.splice(action.index, 1)
+    }else{
+        // Increase object length only for NOT deleted
+        canvas_state.curvesandimages_len += 1
+    }
+
     canvas_state.flag_curve_ended = true;
     drawCurves();
 }
@@ -741,6 +756,8 @@ function pointermove(e) {
             }
         }
     }else if(canvas_state.tool == "eraser") {
+        // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
+
         // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
         if (canvas_state.flag_curve_ended) {
             canvas_state.flag_curve_ended = false
@@ -768,8 +785,10 @@ function pointermove(e) {
             }
 
             if (is_intersect) { // Нашли пересечение с кривой, удаляем
-                canvas_state.curvesandimages.splice(i, 1)
+                let elem = canvas_state.curvesandimages.splice(i, 1)[0]
+                canvas_state.curvesandimages.push({"type": "deleted", "index": i, "elem": elem})
                 // TODO: Добавить возможность сохранения в историю для отката
+                // !!!TODO: Нужно добавить действие об удалении в конец. Его тоже нужно уметь отменить через ctrl + z undo()
             }
         }
 
@@ -820,7 +839,7 @@ function color(obj) {
     canvas_state.tool = "pencil"
 }
 
-function pickeraser(obj){
+function pickeraser(obj) {
     canvas_state.tool = "eraser"
 }
 
@@ -830,6 +849,7 @@ function erase() {
     canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len = 0
     canvas_state.flag_curve_ended = true
+    // TODO: на самом деле тут нужно добавить глобальное удаление всей доски как отменяемое действие в canvas_state.curvesandimages[0]
 }
 
 //function testDPI() {
