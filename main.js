@@ -563,6 +563,8 @@ function drawCurves() {
                 odd_offset = 0
                 elem_scaled_width = elem.width * scale
 
+                // !!!!!!!!!!!!!!TODO: попробовать плавный рескейл, сделать анимацию! Дробить покадрово!
+
                 let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
                 let pt_y_raw = (elem.points[0].y - canvas_state.offset.y) * scale
                 let pt_x = rround(pt_x_raw) + odd_offset
