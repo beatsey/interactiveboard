@@ -560,7 +560,7 @@ function drawCurves() {
                 let elem_scaled_width = Math.round(elem.width * scale)
                 let odd_offset = (elem_scaled_width % 2) * 0.5
 
-                //odd_offset = 0
+                odd_offset = 0
                 elem_scaled_width = elem.width * scale
 
                 let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
