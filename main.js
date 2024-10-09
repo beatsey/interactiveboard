@@ -237,7 +237,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 20,
+    lineWidth: 1,
     tool: "pencil",
     flags: {
         curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
@@ -553,61 +553,47 @@ function drawCurves() {
                 //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
                 //ctx.setTransform(1, 0, 0, 1, 0, 0)
 
-                let odd_offset = (elem.width % 2) * 0.5
+                let rround = (x) => x
 
-                if (false) { // ЛОМАНАЯ
-                    let pt = elem.points[0]
-                    let pt_x = Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset
-                    let pt_y = Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset
-                    ctx.beginPath()
-                    ctx.moveTo(pt_x, pt_y)
-                    for (let j = 1; j < elem.points.length; j++) {
-                        ctx.lineTo(pt_x, pt_y)
-                        pt = elem.points[j];
-                        pt_x = Math.round((pt.x-canvas_state.offset.x) * scale) + odd_offset
-                        pt_y = Math.round((pt.y-canvas_state.offset.y) * scale) + odd_offset
-                    }
+                //rround = Math.round
 
-                    // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
-                    // Иначе они не однотонные
-                    ctx.lineTo(pt_x, pt_y)
-                    ctx.strokeStyle = elem.color
-                    ctx.lineWidth = elem.width
-                    ctx.stroke()
-                    ctx.closePath()
-                }else{ // КВАДРАТИЧНАЯ АПРОКСИМАЦИЯ
+                let elem_scaled_width = Math.round(elem.width * scale)
+                let odd_offset = (elem_scaled_width % 2) * 0.5
 
-                    let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
-                    let pt_y_raw = (elem.points[0].y - canvas_state.offset.y) * scale
-                    let pt_x = Math.round(pt_x_raw) + odd_offset
-                    let pt_y = Math.round(pt_y_raw) + odd_offset
-                    ctx.beginPath()
-                    ctx.moveTo(pt_x, pt_y)
-                    for (let j = 1; j < elem.points.length; j++) {
-                        let new_x_raw = (elem.points[j].x - canvas_state.offset.x) * scale
-                        let new_y_raw = (elem.points[j].y - canvas_state.offset.y) * scale
-                        let new_x = Math.round(new_x_raw) + odd_offset
-                        let new_y = Math.round(new_y_raw) + odd_offset
-                        if ((new_x - pt_x) * (new_x - pt_x) + (new_y - pt_y) * (new_y - pt_y) <= 0.01 * elem.width * elem.width) {
-                            continue
-                        }
+                //odd_offset = 0
+                elem_scaled_width = elem.width * scale
 
-                        ctx.quadraticCurveTo(pt_x, pt_y, Math.round((new_x_raw + pt_x_raw) / 2) + odd_offset, Math.round((new_y_raw + pt_y_raw) / 2) + odd_offset)
+                let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
+                let pt_y_raw = (elem.points[0].y - canvas_state.offset.y) * scale
+                let pt_x = rround(pt_x_raw) + odd_offset
+                let pt_y = rround(pt_y_raw) + odd_offset
+                ctx.beginPath()
+                ctx.moveTo(pt_x, pt_y)
+                for (let j = 1; j < elem.points.length; j++) {
+                    let new_x_raw = (elem.points[j].x - canvas_state.offset.x) * scale
+                    let new_y_raw = (elem.points[j].y - canvas_state.offset.y) * scale
+                    let new_x = rround(new_x_raw) + odd_offset
+                    let new_y = rround(new_y_raw) + odd_offset
+//                    if ((new_x - pt_x) * (new_x - pt_x) + (new_y - pt_y) * (new_y - pt_y) <= 0.1 * elem_scaled_width * elem_scaled_width) {
+//                        continue
+//                    }
 
-                        pt_x_raw = new_x_raw
-                        pt_y_raw = new_y_raw
-                        pt_x = new_x
-                        pt_y = new_y
-                    }
+                    ctx.quadraticCurveTo(pt_x, pt_y, rround((new_x_raw + pt_x_raw) / 2) + odd_offset, rround((new_y_raw + pt_y_raw) / 2) + odd_offset)
 
-                    // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
-                    // Иначе они не однотонные
-                    ctx.lineTo(pt_x, pt_y)
-                    ctx.strokeStyle = elem.color
-                    ctx.lineWidth = elem.width
-                    ctx.stroke()
-                    ctx.closePath()
+                    pt_x_raw = new_x_raw
+                    pt_y_raw = new_y_raw
+                    pt_x = new_x
+                    pt_y = new_y
                 }
+
+                // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
+                // Иначе они не однотонные
+                ctx.lineTo(pt_x, pt_y)
+                ctx.strokeStyle = elem.color
+                ctx.lineWidth = elem_scaled_width
+                ctx.stroke()
+                ctx.closePath()
+
             }
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
@@ -632,12 +618,23 @@ function drawCurves() {
 
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            let topleft_x = Math.round((elem.topleft.x - canvas_state.offset.x) * scale)
-            let topleft_y = Math.round((elem.topleft.y - canvas_state.offset.y) * scale)
-            let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
-            let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
+            // ЭКСПЕРТНОЕ МНЕНИЕ: МАША ГОВОРИТ, ЧТО ЛУЧШЕ ЧЕТКО
 
-            ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            if (wheel_scale > 1.1) {
+                let topleft_x = ((elem.topleft.x - canvas_state.offset.x) * scale)
+                let topleft_y = ((elem.topleft.y - canvas_state.offset.y) * scale)
+                let image_pixel_width = ((elem.botright.x - elem.topleft.x) * scale)
+                let image_pixel_height = ((elem.botright.y - elem.topleft.y) * scale)
+
+                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            }else{
+                let topleft_x = Math.round((elem.topleft.x - canvas_state.offset.x) * scale)
+                let topleft_y = Math.round((elem.topleft.y - canvas_state.offset.y) * scale)
+                let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
+                let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
+
+                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            }
         }
     }
 }
@@ -696,11 +693,11 @@ function pointermove(e) {
     if(canvas_state.tool == "pencil") {
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
         if (canvas_state.flags.curve_ended) {
-            let curve = new Curve;
+            let curve = new Curve
             canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
-            canvas_state.curvesandimages.push(curve);
-            canvas_state.flags.curve_ended = false;
+            canvas_state.curvesandimages.push(curve)
+            canvas_state.flags.curve_ended = false
 
             curve.push(pt)
         }else{
@@ -773,8 +770,6 @@ function pointermove(e) {
                 canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
                 let array = canvas_state.curvesandimages.splice(i, 1)
                 canvas_state.curvesandimages.push({"type": "deleted", "index": i, "array": array})
-                // TODO: Добавить возможность сохранения в историю для отката
-                // !!!TODO: Нужно добавить действие об удалении в конец. Его тоже нужно уметь отменить через ctrl + z undo()
             }
         }
 
@@ -852,6 +847,16 @@ function drawCrossScreenCenter() {
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.closePath();
+}
+
+function drawLine(x1, y1, x2, y2, lw) {
+    // Cross in the center
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineWidth = lw;
     ctx.stroke();
     ctx.closePath();
 }
