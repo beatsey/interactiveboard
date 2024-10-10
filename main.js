@@ -227,7 +227,7 @@ let canvas, ctx, linecolor = "black";
 let canvas_state = {
     SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
     board:{
-        src_index:[],
+        src_index:{},
         index_images:[],
         objects:[]
     },
@@ -385,22 +385,20 @@ function init() {
 
     fetch('./state.json')
     .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.text();
+        if (!response.ok) throw new Error('Network response was not ok')
+        return response.text()
     })
     .then(json_file_data => {
         json_file_data = JSON.parse(json_file_data)
-        for(let i=0;i<json_file_data.length;i++) {
-            let elem = json_file_data[i]
-            if (elem.type == "image") {
-                addNewImage(src=elem.image, topleft=elem.topleft, botright=elem.botright)
-            }else{
-                canvas_state.board.objects.push(elem)
-                canvas_state.curvesandimages_len += 1
-            }
+        console.log(json_file_data)
+
+        for(let i=0;i<json_file_data.index_images.length;i++) {
+            let src = json_file_data.index_images[i]
+            canvas_state.board.index_images.push(new ExtendedImage(src=src))
+            canvas_state.board.src_index[src] = i
         }
+        canvas_state.board.objects = json_file_data.objects
+        canvas_state.curvesandimages_len = canvas_state.board.objects.length
         console.log("Contents are loaded!")
         drawCurves(debug="json_loaded")
     })
@@ -841,6 +839,14 @@ function save() {
 }
 // TODO: make fast save_board_state function
 // TODO: make it not a text, but work with binary serializer
+
+// TODO: Сделать функцию, которая очищает board.objects от deleted
+// нужно не забыть про неиспользуемые изображения в board.src_index и board.index_images !
+// Также сделать ограничение на глубину стека отмены
+function clearDeletedFromCache() {
+
+}
+
 function save_board_state() {
     // Serialize canvas_state object to a file
     // Then read it back to restore session. If board was dragging then end it.
