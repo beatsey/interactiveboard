@@ -233,6 +233,7 @@ let canvas_state = {
     lineWidth: 20,
     tool: "pencil",
     flags: {
+        redraw_frame: true,
         round_images: true, // Флаг округления координат image в drawCurves (для четкости)
         curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
         spacebar: false,
@@ -309,21 +310,21 @@ function init() {
         return response.text();
     })
     .then(json_file_data => {
-        console.log("Contents are loaded!")
         json_file_data = JSON.parse(json_file_data)
         for(let i=0;i<json_file_data.length;i++) {
             let elem = json_file_data[i]
             if (elem.type == "image"){
                 let img = new Image()
                 img.src = elem.image
-                img.onload = drawCurves
+                img.onload = () => drawCurves(debug="image_loaded")
                 elem = new MyImage(img, elem.topleft, elem.botright)
             }
 //            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
             canvas_state.curvesandimages.push(elem)
         }
-        drawCurves()
+        console.log("Contents are loaded!")
+        drawCurves(debug="json_loaded")
     })
     .catch(error => {
         console.error('There was a problem with the fetch operation: ' + error.message);
@@ -338,7 +339,7 @@ function init() {
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
         setCanvasWidthHeight()
-        drawCurves()
+        drawCurves(debug="resize")
     })
 
     // Event of ctrl + v pasting from clipboard
@@ -372,7 +373,7 @@ function init() {
                         canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
                         canvas_state.curvesandimages_len += 1
                         canvas_state.curvesandimages.push(new MyImage(img, topleft, botright));
-                        drawCurves();
+                        drawCurves(debug="image_inserted");
                     };
 //
 //                    //console.log(typeof(event.target.result))
@@ -398,14 +399,13 @@ function init() {
         if (scrollMoves.isMouse_scroll || e.ctrlKey || e.metaKey) {
             let speed = Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30)
             zoom(speed=speed)
-            canvas_state.flags.round_images = Math.abs(speed) > 15
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
             canvas_state.offset.x += 1.2 * pixels_delta_x / scale
             canvas_state.offset.y += 1.2 * pixels_delta_y / scale
+            drawCurves(debug="wheel")
         }
-        drawCurves()
     }, false)
 
     addEventListener('keydown', e => {
@@ -425,7 +425,7 @@ function init() {
                     zoom(speed=40, pointer_position=true) // zoom out
                     break
                 case 'Digit0':
-                    zoom(speed=1, pointer_position=true, reset_scale=true)
+                    zoom(speed=1000, pointer_position=true, reset_scale=true) // speed should be > 15 for sharp image coordinates
                     break
                 case 'KeyZ':
                     undo()
@@ -447,8 +447,6 @@ function init() {
             canvas_state.flags.shift = false
         }
     })
-
-    requestAnimationFrame(loop)
 }
 
 function undo() {
@@ -466,7 +464,7 @@ function undo() {
     }
 
     canvas_state.flags.curve_ended = true
-    drawCurves()
+    drawCurves(debug="undo")
 }
 
 function redo() {
@@ -482,7 +480,7 @@ function redo() {
     }
 
     canvas_state.flags.curve_ended = true;
-    drawCurves();
+    drawCurves(debug="redo");
 }
 
 function zoom(speed, pointer_position=true, reset_scale=false) {
@@ -508,32 +506,31 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
         }
 
         scale = dpi / wheel_scale
-        drawCurves();
+        drawCurves(round_images=Math.abs(speed) > 15, debug="zoom")
     }
 }
 
-let Date_start = Date.now();
+// Функция собирает заявки на перерисовку
+function drawCurves(round_images=true) {
+    canvas_state.flags.round_images=round_images
+
+    //console.log("debug:", debug)
+
+    if (canvas_state.flags.redraw_frame) {
+        requestAnimationFrame(drawCurves_inner)
+        canvas_state.flags.redraw_frame = false
+    }
+}
+
+let start_time = performance.now()
 let prev = performance.now()
 let counter = 0
 
-function drawCurves() {
-    canvas_state.redraw_frame = true
-}
-
-function loop() {
-    if (canvas_state.redraw_frame) {
-        canvas_state.redraw_frame = false
-        drawCurves_inner()
-    }
-    requestAnimationFrame(loop)
-}
-
-// Функция отвечает за отрисовку всего canvas
+// Функция отвечает за отрисовку кадра
 function drawCurves_inner() {
     let now = performance.now()
 
     if (Math.floor(prev / 1000) < Math.floor(now / 1000)) {
-        console.log(counter)
         counter = 0
     }
     counter += 1
@@ -620,6 +617,7 @@ function drawCurves_inner() {
                 let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
                 let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
                 ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+                //console.log(true)
             }else{
                 let topleft_x = (elem.topleft.x * scale) - pixel_offset_x
                 let topleft_y = (elem.topleft.y * scale) - pixel_offset_y
@@ -629,6 +627,12 @@ function drawCurves_inner() {
             }
         }
     }
+    if (start_time){
+        console.log("First frame in ", (performance.now() - start_time) / 1000, " seconds")
+        //console.log(canvas_state.curvesandimages_len)
+        start_time = undefined
+    }
+    canvas_state.flags.redraw_frame = true
 }
 
 function register_click(e) {
@@ -667,7 +671,7 @@ function pointermove(e) {
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
         canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(1 / scale).add(start_offset)
-        drawCurves()
+        drawCurves(debug="dragging")
         return
     }
 
@@ -766,8 +770,7 @@ function pointermove(e) {
         // Remember last pt for eraser
         canvas_state.previous_screen_holst_pos = pt
     }
-
-    drawCurves();
+    drawCurves(debug="pointermoved")
 }
 
 function save() {
