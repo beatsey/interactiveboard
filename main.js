@@ -328,8 +328,10 @@ function init() {
         console.error('There was a problem with the fetch operation: ' + error.message);
     })
 
+    addEventListener("pointerdown", e => {console.log(e)}, false)
+
     // canvas mousedown event happens first and registers mouse left and right clicks
-    canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
+    canvas.addEventListener("pointerdown", e => {console.log(e); register_click(e); pointermove(e)}, false)
     addEventListener("pointermove", e => {pointermove(e)}, false)
     addEventListener("pointerup", e => register_click(e), false)
 
@@ -393,8 +395,11 @@ function init() {
         }
 
         const current_browser_zoom = outerWidth/innerWidth
-        if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
+        if (scrollMoves.isMouse || e.ctrlKey || e.metaKey) {
             zoom(speed=Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30))
+            drawCurves(round_images=scrollMoves.isMouse)
+            console.log(scrollMoves.isMouse)
+            // TODO: неверно определяется мышь или нет
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
@@ -508,29 +513,8 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
 
 let Date_start = Date.now();
 
-let frameCount = function _fc(timeStart) {
-        let now = performance.now()
-        let duration = now - timeStart
-
-        if(duration < 1000) {
-            _fc.counter++
-        } else {
-
-            _fc.fps = _fc.counter
-            _fc.counter = 0
-            timeStart = now
-            document.getElementById("fps").innerHTML = "fps: " + _fc.fps
-        }
-        requestAnimationFrame(() => frameCount(timeStart))
-    }
-
-frameCount.counter = 0;
-frameCount.fps = 0;
-
-frameCount(performance.now())
-
 // Функция отвечает за отрисовку всего canvas
-function drawCurves() {
+function drawCurves(round_images=true) {
     let now = performance.now()
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
@@ -606,14 +590,22 @@ function drawCurves() {
 
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            let topleft_x = elem.topleft.x * scale - pixel_offset_x
-            let topleft_y = elem.topleft.y * scale - pixel_offset_y
-            let image_pixel_width = (elem.botright.x - elem.topleft.x) * scale
-            let image_pixel_height = (elem.botright.y - elem.topleft.y) * scale
-            ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            if (round_images) {
+                let topleft_x = Math.round(elem.topleft.x * scale) - pixel_offset_x
+                let topleft_y = Math.round(elem.topleft.y * scale) - pixel_offset_y
+                let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
+                let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
+                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            }else{
+                let topleft_x = (elem.topleft.x * scale) - pixel_offset_x
+                let topleft_y = (elem.topleft.y * scale) - pixel_offset_y
+                let image_pixel_width = (elem.botright.x - elem.topleft.x) * scale
+                let image_pixel_height = (elem.botright.y - elem.topleft.y) * scale
+                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+            }
         }
     }
-    document.getElementById("frametime").innerHTML = "frametime: " + (performance.now() - now)
+    //document.getElementById("frametime").innerHTML = "frametime: " + (performance.now() - now)
 }
 
 function register_click(e) {
