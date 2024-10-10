@@ -233,6 +233,7 @@ let canvas_state = {
     lineWidth: 20,
     tool: "pencil",
     flags: {
+        round_images: true, // Флаг округления координат image в drawCurves (для четкости)
         curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
         spacebar: false,
         dragging: false,
@@ -397,14 +398,14 @@ function init() {
         if (scrollMoves.isMouse_scroll || e.ctrlKey || e.metaKey) {
             let speed = Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30)
             zoom(speed=speed)
-            drawCurves(round_images=Math.abs(speed) > 15)
+            canvas_state.flags.round_images = Math.abs(speed) > 15
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
             canvas_state.offset.x += 1.2 * pixels_delta_x / scale
             canvas_state.offset.y += 1.2 * pixels_delta_y / scale
-            drawCurves()
         }
+        drawCurves()
     }, false)
 
     addEventListener('keydown', e => {
@@ -446,6 +447,8 @@ function init() {
             canvas_state.flags.shift = false
         }
     })
+
+    requestAnimationFrame(loop)
 }
 
 function undo() {
@@ -510,13 +513,23 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
 }
 
 let Date_start = Date.now();
-
 let prev = performance.now()
-
 let counter = 0
 
+function drawCurves() {
+    canvas_state.redraw_frame = true
+}
+
+function loop() {
+    if (canvas_state.redraw_frame) {
+        canvas_state.redraw_frame = false
+        drawCurves_inner()
+    }
+    requestAnimationFrame(loop)
+}
+
 // Функция отвечает за отрисовку всего canvas
-function drawCurves(round_images=true) {
+function drawCurves_inner() {
     let now = performance.now()
 
     if (Math.floor(prev / 1000) < Math.floor(now / 1000)) {
@@ -601,7 +614,7 @@ function drawCurves(round_images=true) {
 
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            if (round_images) {
+            if (canvas_state.flags.round_images) {
                 let topleft_x = Math.round(elem.topleft.x * scale) - pixel_offset_x
                 let topleft_y = Math.round(elem.topleft.y * scale) - pixel_offset_y
                 let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
@@ -643,8 +656,6 @@ function segment_intersection(m0,m1,m2,m3) {
 
     return true
 }
-
-eraser_curve = []
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
