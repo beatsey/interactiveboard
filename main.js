@@ -33,14 +33,8 @@ class Vector2 {
         this.y *= i;
         return this;
     }
-
     cpy(){
         return new Vector2(this.x, this.y);
-    }
-    round(){
-        this.x = Math.round(this.x)
-        this.y = Math.round(this.y)
-        return this
     }
 }
 
@@ -421,13 +415,13 @@ function init() {
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
-                    zoom(speed=-40, pointer_position=false) // zoom in
+                    zoom(speed=-40, pointer_position=true) // zoom in
                     break
                 case 'Minus':
-                    zoom(speed=40, pointer_position=false) // zoom out
+                    zoom(speed=40, pointer_position=true) // zoom out
                     break
                 case 'Digit0':
-                    zoom(speed=1, pointer_position=false, reset_scale=true)
+                    zoom(speed=1, pointer_position=true, reset_scale=true)
                     break
                 case 'KeyZ':
                     undo()
@@ -520,83 +514,40 @@ function drawCurves() {
 
 //    drawCrossScreenCenter()
 
+    // Необходимо для чётких картинок и линий.
+    const pixel_offset_x = Math.round(canvas_state.offset.x * scale)
+    const pixel_offset_y = Math.round(canvas_state.offset.y * scale)
+
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.curvesandimages[i];
 
-        // TODO: рисуем объект только если его bbox пересекается с видимым экраном
+        // TODO ОПТИМИЗАЦИЯ: рисуем объект только если его bbox пересекается с видимым экраном
         if(elem.type === 'curve') {
-            if(false) {
-//                if (elem.width % 2 === 1)
-//                    ctx.translate(0.5, 0.5)
+            //ctx.setTransform(1, 0, 0, 1, -pixel_offset_x, -pixel_offset_y)
 
-                ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
+            // !!!!!!!!!!!!!!TODO: попробовать плавный рескейл, сделать анимацию! Дробить покадрово!
 
-                let pt = elem.points[0]
-                ctx.beginPath();
-                ctx.moveTo(pt.x, pt.y);
-                for (let j = 1; j < elem.points.length; j++) {
-                    let new_pt = elem.points[j]
-                    //ctx.quadraticCurveTo(pt.x, pt.y, (new_pt.x + pt.x) / 2, (new_pt.y + pt.y) / 2)
-                    ctx.lineTo(Math.round(pt.x), Math.round(pt.y))
-                    pt = new_pt;
-                }
+            let pt_x = (elem.points[0].x * scale) - pixel_offset_x
+            let pt_y = (elem.points[0].y * scale) - pixel_offset_y
+            ctx.beginPath()
+            ctx.moveTo(pt_x, pt_y)
+            for (let j = 1; j < elem.points.length; j++) {
+                let new_x = elem.points[j].x * scale - pixel_offset_x
+                let new_y = elem.points[j].y * scale - pixel_offset_y
 
-                ctx.lineTo(Math.round(pt.x), Math.round(pt.y));
-                ctx.strokeStyle = elem.color;
-                ctx.lineWidth = elem.width;
-                ctx.stroke();
-                ctx.closePath();
+                ctx.quadraticCurveTo(pt_x, pt_y, (new_x + pt_x) / 2, (new_y + pt_y) / 2)
 
-                if (elem.width % 2 === 1)
-                    ctx.translate(-0.5, -0.5)
-            }else{
-                //ctx.setTransform(1, 0, 0, 1, -Math.round(canvas_state.offset.x * scale), -Math.round(canvas_state.offset.y * scale))
-                //ctx.setTransform(1, 0, 0, 1, 0, 0)
-
-                let rround = (x) => x
-
-                //rround = Math.round
-
-                let elem_scaled_width = Math.round(elem.width * scale)
-                let odd_offset = (elem_scaled_width % 2) * 0.5
-
-                odd_offset = 0
-                elem_scaled_width = elem.width * scale
-
-                // !!!!!!!!!!!!!!TODO: попробовать плавный рескейл, сделать анимацию! Дробить покадрово!
-
-                let pt_x_raw = (elem.points[0].x - canvas_state.offset.x) * scale
-                let pt_y_raw = (elem.points[0].y - canvas_state.offset.y) * scale
-                let pt_x = rround(pt_x_raw) + odd_offset
-                let pt_y = rround(pt_y_raw) + odd_offset
-                ctx.beginPath()
-                ctx.moveTo(pt_x, pt_y)
-                for (let j = 1; j < elem.points.length; j++) {
-                    let new_x_raw = (elem.points[j].x - canvas_state.offset.x) * scale
-                    let new_y_raw = (elem.points[j].y - canvas_state.offset.y) * scale
-                    let new_x = rround(new_x_raw) + odd_offset
-                    let new_y = rround(new_y_raw) + odd_offset
-//                    if ((new_x - pt_x) * (new_x - pt_x) + (new_y - pt_y) * (new_y - pt_y) <= 0.1 * elem_scaled_width * elem_scaled_width) {
-//                        continue
-//                    }
-
-                    ctx.quadraticCurveTo(pt_x, pt_y, rround((new_x_raw + pt_x_raw) / 2) + odd_offset, rround((new_y_raw + pt_y_raw) / 2) + odd_offset)
-
-                    pt_x_raw = new_x_raw
-                    pt_y_raw = new_y_raw
-                    pt_x = new_x
-                    pt_y = new_y
-                }
-
-                // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
-                // Иначе они не однотонные
-                ctx.lineTo(pt_x, pt_y)
-                ctx.strokeStyle = elem.color
-                ctx.lineWidth = elem_scaled_width
-                ctx.stroke()
-                ctx.closePath()
-
+                pt_x = new_x
+                pt_y = new_y
             }
+
+            // Для чёткой линии, нужен только один odd_offset, когда мы делаем горизонтальную / вертикальную линию.
+            // Иначе они не однотонные
+            ctx.lineTo(pt_x, pt_y)
+            ctx.strokeStyle = elem.color
+            ctx.lineWidth = elem.width * scale
+            ctx.stroke()
+            ctx.closePath()
         }else if (elem.type === 'image') {
             // Paste image so that current cursor is in the center of an image
             //ctx.setTransform(1, 0, 0, 1, 0, 0)
@@ -620,23 +571,11 @@ function drawCurves() {
 
             //ctx.setTransform(scale, 0, 0, scale, -canvas_state.offset.x * scale, -canvas_state.offset.y * scale)
 
-            // ЭКСПЕРТНОЕ МНЕНИЕ: МАША ГОВОРИТ, ЧТО ЛУЧШЕ ЧЕТКО
-
-            if (wheel_scale > 1.1) {
-                let topleft_x = ((elem.topleft.x - canvas_state.offset.x) * scale)
-                let topleft_y = ((elem.topleft.y - canvas_state.offset.y) * scale)
-                let image_pixel_width = ((elem.botright.x - elem.topleft.x) * scale)
-                let image_pixel_height = ((elem.botright.y - elem.topleft.y) * scale)
-
-                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
-            }else{
-                let topleft_x = Math.round((elem.topleft.x - canvas_state.offset.x) * scale)
-                let topleft_y = Math.round((elem.topleft.y - canvas_state.offset.y) * scale)
-                let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
-                let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
-
-                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
-            }
+            let topleft_x = elem.topleft.x * scale - pixel_offset_x
+            let topleft_y = elem.topleft.y * scale - pixel_offset_y
+            let image_pixel_width = (elem.botright.x - elem.topleft.x) * scale
+            let image_pixel_height = (elem.botright.y - elem.topleft.y) * scale
+            ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
         }
     }
 }
