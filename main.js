@@ -328,10 +328,9 @@ function init() {
         console.error('There was a problem with the fetch operation: ' + error.message);
     })
 
-    addEventListener("pointerdown", e => {console.log(e)}, false)
 
     // canvas mousedown event happens first and registers mouse left and right clicks
-    canvas.addEventListener("pointerdown", e => {console.log(e); register_click(e); pointermove(e)}, false)
+    canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
     addEventListener("pointermove", e => {pointermove(e)}, false)
     addEventListener("pointerup", e => register_click(e), false)
 
@@ -390,16 +389,15 @@ function init() {
 
         // We classify mouse / trackpad by the initial e.wheelDeltaY speed
         if (e.timeStamp - scrollMoves.lastTimestamp > 100) {
-            scrollMoves.isMouse = e.deltaX === 0 && Math.abs(e.wheelDeltaY) >= 100 && e.wheelDeltaY % 10 === 0
+            scrollMoves.isMouse_scroll = e.deltaX === 0 && Math.abs(e.wheelDeltaY) >= 100 && e.wheelDeltaY % 10 === 0
             scrollMoves.lastTimestamp = e.timeStamp
         }
 
         const current_browser_zoom = outerWidth/innerWidth
-        if (scrollMoves.isMouse || e.ctrlKey || e.metaKey) {
-            zoom(speed=Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30))
-            drawCurves(round_images=scrollMoves.isMouse)
-            console.log(scrollMoves.isMouse)
-            // TODO: неверно определяется мышь или нет
+        if (scrollMoves.isMouse_scroll || e.ctrlKey || e.metaKey) {
+            let speed = Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30)
+            zoom(speed=speed)
+            drawCurves(round_images=Math.abs(speed) > 15)
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
@@ -513,9 +511,22 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
 
 let Date_start = Date.now();
 
+let prev = performance.now()
+
+let counter = 0
+
 // Функция отвечает за отрисовку всего canvas
 function drawCurves(round_images=true) {
     let now = performance.now()
+
+    if (Math.floor(prev / 1000) < Math.floor(now / 1000)) {
+        console.log(counter)
+        counter = 0
+    }
+    counter += 1
+
+    prev = now
+
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
@@ -605,7 +616,6 @@ function drawCurves(round_images=true) {
             }
         }
     }
-    //document.getElementById("frametime").innerHTML = "frametime: " + (performance.now() - now)
 }
 
 function register_click(e) {
