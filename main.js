@@ -220,8 +220,7 @@ Ability to render pdf file on board.
 *
 * */
 
-let canvas, ctx,
-    linecolor = "black";
+let canvas, ctx, linecolor = "black";
 
 // Данная переменная хранит все объекты доски
 let canvas_state = {
@@ -231,7 +230,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 1,
+    lineWidth: 20,
     tool: "pencil",
     flags: {
         curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
@@ -327,14 +326,13 @@ function init() {
     })
     .catch(error => {
         console.error('There was a problem with the fetch operation: ' + error.message);
-    });
+    })
 
     // canvas mousedown event happens first and registers mouse left and right clicks
     canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
-    addEventListener("pointermove", e => pointermove(e), false)
+    addEventListener("pointermove", e => {pointermove(e)}, false)
     addEventListener("pointerup", e => register_click(e), false)
 
-    //addEventListener("touchmove", e => pointermove(e), false)
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
         setCanvasWidthHeight()
@@ -398,8 +396,10 @@ function init() {
         if (scrollMoves.isMouse || (e.ctrlKey || e.metaKey)) {
             zoom(speed=Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30))
         } else {
-            canvas_state.offset.x += 1.2 * e.deltaX / scale * current_browser_zoom
-            canvas_state.offset.y += 1.2 * e.deltaY / scale * current_browser_zoom
+            let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
+            let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
+            canvas_state.offset.x += 1.2 * pixels_delta_x / scale
+            canvas_state.offset.y += 1.2 * pixels_delta_y / scale
             drawCurves()
         }
     }, false)
@@ -487,7 +487,7 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
         wheel_scale *= Math.exp(speed * 0.008)
         // maximum scale down = 400%, maximum scale up = 500%
         // 4 = 400%, 0.2 = 1 / 500%
-        wheel_scale = Math.max(Math.min(10, wheel_scale), 0.1)
+        wheel_scale = Math.max(Math.min(120, wheel_scale), 0.2)
     }
 
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
@@ -506,8 +506,32 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
     }
 }
 
-// Функция отвечает за отрисовку всех кривых на экране.
+let Date_start = Date.now();
+
+let frameCount = function _fc(timeStart) {
+        let now = performance.now()
+        let duration = now - timeStart
+
+        if(duration < 1000) {
+            _fc.counter++
+        } else {
+
+            _fc.fps = _fc.counter
+            _fc.counter = 0
+            timeStart = now
+            document.getElementById("fps").innerHTML = "fps: " + _fc.fps
+        }
+        requestAnimationFrame(() => frameCount(timeStart))
+    }
+
+frameCount.counter = 0;
+frameCount.fps = 0;
+
+frameCount(performance.now())
+
+// Функция отвечает за отрисовку всего canvas
 function drawCurves() {
+    let now = performance.now()
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
@@ -520,15 +544,26 @@ function drawCurves() {
 
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.curvesandimages[i];
+        if (elem.type == "deleted") continue
 
-        // TODO ОПТИМИЗАЦИЯ: рисуем объект только если его bbox пересекается с видимым экраном
+        // Добавляем ширину кисти к bbox
+        let curve_bbox_linewidth_addition = (elem.type == "curve") ? elem.width * 0.5 : 0
+
+        // Рисуем объект только если его bbox пересекается с видимым экраном
+        if (
+            elem.botright.x + curve_bbox_linewidth_addition - canvas_state.offset.x < 0 ||
+            (elem.topleft.x - curve_bbox_linewidth_addition - canvas_state.offset.x) * scale > can.width ||
+            elem.botright.y + curve_bbox_linewidth_addition - canvas_state.offset.y < 0 ||
+            (elem.topleft.y - curve_bbox_linewidth_addition - canvas_state.offset.y) * scale > can.height
+        ) continue
+
         if(elem.type === 'curve') {
             //ctx.setTransform(1, 0, 0, 1, -pixel_offset_x, -pixel_offset_y)
 
             // !!!!!!!!!!!!!!TODO: попробовать плавный рескейл, сделать анимацию! Дробить покадрово!
 
-            let pt_x = (elem.points[0].x * scale) - pixel_offset_x
-            let pt_y = (elem.points[0].y * scale) - pixel_offset_y
+            let pt_x = elem.points[0].x * scale - pixel_offset_x
+            let pt_y = elem.points[0].y * scale - pixel_offset_y
             ctx.beginPath()
             ctx.moveTo(pt_x, pt_y)
             for (let j = 1; j < elem.points.length; j++) {
@@ -557,7 +592,7 @@ function drawCurves() {
 //            ctx.moveTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
 //            ctx.lineTo((elem.topleft.x - canvas_state.offset.x) * scale, (elem.topleft.y - canvas_state.offset.y) * scale)
 //            ctx.strokeStyle = "red"
-//            ctx.lineWidth = 10
+//            ctx.lineWidth = 1000
 //            ctx.stroke()
 //            ctx.closePath()
 //
@@ -565,7 +600,7 @@ function drawCurves() {
 //            ctx.moveTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
 //            ctx.lineTo((elem.botright.x - canvas_state.offset.x) * scale, (elem.botright.y - canvas_state.offset.y) * scale)
 //            ctx.strokeStyle = "blue"
-//            ctx.lineWidth = 10
+//            ctx.lineWidth = 1000
 //            ctx.stroke()
 //            ctx.closePath()
 
@@ -578,6 +613,7 @@ function drawCurves() {
             ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
         }
     }
+    document.getElementById("frametime").innerHTML = "frametime: " + (performance.now() - now)
 }
 
 function register_click(e) {
@@ -801,61 +837,3 @@ function drawLine(x1, y1, x2, y2, lw) {
     ctx.stroke();
     ctx.closePath();
 }
-
-
-//function testDPI() {
-//    //ctx.scale(1/scale, 1/scale)
-//    ctx.fillRect(2,2,1,1);
-//    ctx.fillRect(4,2,1,1);
-//    ctx.fillRect(6,2,2,2);
-//    ctx.fillRect(10.5,2,2,2);
-//    //ctx.scale(scale, scale)
-//
-//    ctx.beginPath();
-//    ctx.moveTo(200, 200);
-//    ctx.lineTo(300, 300);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.beginPath();
-//    ctx.moveTo(300, 200);
-//    ctx.lineTo(400, 200);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.scale(dpi, dpi)
-//    ctx.translate(-canvas_state.offset.x, -canvas_state.offset.y)
-//    ctx.lineWidth = canvas_state.lineWidth / dpi
-//
-//
-//    //if (canvas_state.lineWidth % 2 === 1)
-//    //    ctx.translate(-0.5, -0.5)
-//
-//    ctx.beginPath();
-//    ctx.moveTo(500+200, 200);
-//    ctx.lineTo(500+300, 300);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.beginPath();
-//    ctx.moveTo(500+300, 200);
-//    ctx.lineTo(500+400, 200);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.beginPath();
-//    ctx.moveTo(500+300, 203);
-//    ctx.lineTo(500+400, 203);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.beginPath();
-//    ctx.moveTo(500+300, 205);
-//    ctx.lineTo(500+400, 205);
-//    ctx.stroke();
-//    ctx.closePath();
-//
-//    ctx.lineWidth = canvas_state.lineWidth
-//    ctx.translate(canvas_state.offset.x, canvas_state.offset.y)
-//    ctx.scale(1/dpi, 1/dpi)
-//}
