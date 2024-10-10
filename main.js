@@ -225,7 +225,10 @@ let canvas, ctx, linecolor = "black";
 // Данная переменная хранит все объекты доски
 let canvas_state = {
     SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
-    curvesandimages:[],
+    board:{
+        images:[],
+        objects:[]
+    },
     curvesandimages_len: 0,
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
@@ -319,9 +322,8 @@ function init() {
                 img.onload = () => drawCurves(debug="image_loaded")
                 elem = new MyImage(img, elem.topleft, elem.botright)
             }
-//            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
-            canvas_state.curvesandimages.push(elem)
+            canvas_state.board.objects.push(elem)
         }
         console.log("Contents are loaded!")
         drawCurves(debug="json_loaded")
@@ -370,9 +372,9 @@ function init() {
                         topleft.add(canvas_state.offset)
                         let botright = new Vector2(topleft.x + img.width / dpi, topleft.y + img.height / dpi)
 
-                        canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+                        canvas_state.board.objects.length = canvas_state.curvesandimages_len
                         canvas_state.curvesandimages_len += 1
-                        canvas_state.curvesandimages.push(new MyImage(img, topleft, botright));
+                        canvas_state.board.objects.push(new MyImage(img, topleft, botright));
                         drawCurves(debug="image_inserted");
                     };
 //
@@ -453,9 +455,9 @@ function undo() {
     // ctrl + z
     if (canvas_state.curvesandimages_len === 0) return
 
-    let undo_action = canvas_state.curvesandimages[canvas_state.curvesandimages_len - 1]
+    let undo_action = canvas_state.board.objects[canvas_state.curvesandimages_len - 1]
     if (undo_action.type == "deleted") {
-        canvas_state.curvesandimages.splice(undo_action.index, 0, ...undo_action.array)
+        canvas_state.board.objects.splice(undo_action.index, 0, ...undo_action.array)
         canvas_state.curvesandimages_len += undo_action.array.length - 1
     }
     else{
@@ -469,10 +471,10 @@ function undo() {
 
 function redo() {
     // ctrl + y
-    if (canvas_state.curvesandimages.length === canvas_state.curvesandimages_len) return;
-    let action = canvas_state.curvesandimages[canvas_state.curvesandimages_len]
+    if (canvas_state.board.objects.length === canvas_state.curvesandimages_len) return;
+    let action = canvas_state.board.objects[canvas_state.curvesandimages_len]
     if (action.type == "deleted") {
-        canvas_state.curvesandimages.splice(action.index, action.array.length)
+        canvas_state.board.objects.splice(action.index, action.array.length)
         canvas_state.curvesandimages_len -= action.array.length - 1
     }else{
         // Increase object length only for NOT deleted
@@ -513,7 +515,6 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
 // Функция собирает заявки на перерисовку
 function drawCurves(round_images=true) {
     canvas_state.flags.round_images=round_images
-
     //console.log("debug:", debug)
 
     if (canvas_state.flags.redraw_frame) {
@@ -548,7 +549,7 @@ function drawCurves_inner() {
     const pixel_offset_y = Math.round(canvas_state.offset.y * scale)
 
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
-        let elem = canvas_state.curvesandimages[i];
+        let elem = canvas_state.board.objects[i];
         if (elem.type == "deleted") continue
 
         // Добавляем ширину кисти к bbox
@@ -629,7 +630,6 @@ function drawCurves_inner() {
     }
     if (start_time){
         console.log("First frame in ", (performance.now() - start_time) / 1000, " seconds")
-        //console.log(canvas_state.curvesandimages_len)
         start_time = undefined
     }
     canvas_state.flags.redraw_frame = true
@@ -688,14 +688,14 @@ function pointermove(e) {
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
         if (canvas_state.flags.curve_ended) {
             let curve = new Curve
-            canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+            canvas_state.board.objects.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
-            canvas_state.curvesandimages.push(curve)
+            canvas_state.board.objects.push(curve)
             canvas_state.flags.curve_ended = false
 
             curve.push(pt)
         }else{
-            let curve = canvas_state.curvesandimages[canvas_state.curvesandimages.length - 1]
+            let curve = canvas_state.board.objects[canvas_state.board.objects.length - 1]
 
             if (canvas_state.flags.shift) {
                 // Remove all points except the first one
@@ -740,7 +740,7 @@ function pointermove(e) {
         }
         else
         for(let i=canvas_state.curvesandimages_len - 1;i>=0;i--) {
-            let figure = canvas_state.curvesandimages[i]
+            let figure = canvas_state.board.objects[i]
             if(figure.type != "curve") continue
 
             if (
@@ -750,7 +750,7 @@ function pointermove(e) {
                 Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y
             ) continue
 
-            let pts = canvas_state.curvesandimages[i].points
+            let pts = canvas_state.board.objects[i].points
             let is_intersect = false
             for(let p=1;p<pts.length;p++) {
                 // Проверяем пересечение отрезков
@@ -761,9 +761,9 @@ function pointermove(e) {
             }
 
             if (is_intersect) { // Нашли пересечение с кривой, удаляем
-                canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
-                let array = canvas_state.curvesandimages.splice(i, 1)
-                canvas_state.curvesandimages.push({"type": "deleted", "index": i, "array": array})
+                canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                let array = canvas_state.board.objects.splice(i, 1)
+                canvas_state.board.objects.push({"type": "deleted", "index": i, "array": array})
             }
         }
 
@@ -788,7 +788,7 @@ function save_board_state() {
     // Serialize canvas_state object to a file
     // Then read it back to restore session. If board was dragging then end it.
 
-    let bl = new Blob([JSON.stringify(canvas_state.curvesandimages)], {type: "application/json"})
+    let bl = new Blob([JSON.stringify(canvas_state.board.objects)], {type: "application/json"})
     console.log(bl);
     let a = document.createElement("a");
     a.href = URL.createObjectURL(bl);
@@ -797,13 +797,6 @@ function save_board_state() {
     document.body.appendChild(a);
     a.innerHTML = "someinnerhtml";
     a.click();
-}
-
-function load_board_state() {
-    // Open file fialog, then read a file.
-    // Load what's inside to display.
-    // Then make sure that the same board on different pc's / settings is good-looking with the same proportions
-    // And it should be sharp on all the devices.
 }
 
 function color(obj) {
@@ -819,10 +812,10 @@ function erase() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
-    canvas_state.curvesandimages.length = canvas_state.curvesandimages_len
+    canvas_state.board.objects.length = canvas_state.curvesandimages_len
 
-    let arr = canvas_state.curvesandimages
-    canvas_state.curvesandimages = [{"type": "deleted", "index": 0, "array": arr}]
+    let arr = canvas_state.board.objects
+    canvas_state.board.objects = [{"type": "deleted", "index": 0, "array": arr}]
     canvas_state.curvesandimages_len = 1
     canvas_state.flags.curve_ended = true
 }
