@@ -38,25 +38,26 @@ class Vector2 {
     }
 }
 
-class MyImage {
-    type = 'image'
-    constructor(image, topleft, botright) {
-        this.image = image
-        this.topleft = topleft
-        this.botright = botright
-    }
-
-    // Function is used in save_board_state method by stringify function
-    // TODO: make toByteArray and fromByteArray methods to make fast serialization / deserialization
-    toJSON() {
-        return {
-            type: this.type,
-            image: this.image.src,
-            topleft: this.topleft,
-            botright: this.botright
-        }
-    }
-}
+//class MyImage {
+//    type = 'image'
+//    constructor(index, topleft, botright) {
+//        this.index = index
+//        this.image = canvas_state.board.images[index]
+//        this.topleft = topleft
+//        this.botright = botright
+//    }
+//
+//    // Function is used in save_board_state method by stringify function
+//    // TODO: make toByteArray and fromByteArray methods to make fast serialization / deserialization
+//    toJSON() {
+//        return {
+//            type: this.type,
+//            index: this.index,
+//            topleft: this.topleft,
+//            botright: this.botright
+//        }
+//    }
+//}
 
 class Curve {
     constructor(color, width, points) {
@@ -226,7 +227,8 @@ let canvas, ctx, linecolor = "black";
 let canvas_state = {
     SHIFT_LINE_STEP_DEGREES:45, // Шаг угла наклона прямой при зажатом шифте
     board:{
-        images:[],
+        src_index:[],
+        index_images:[],
         objects:[]
     },
     curvesandimages_len: 0,
@@ -301,6 +303,82 @@ let scrollMoves = {
     lastTimestamp: 0
 };
 
+class ExtendedImage extends Image {
+    constructor(src = "") {
+        super()
+        this.src = src
+    }
+
+    toJSON() {
+        return this.src
+    }
+}
+
+function addNewImage(src, topleft, botright) {
+    let cursor_pixel_pos
+    if (topleft == undefined) cursor_pixel_pos = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
+
+    canvas_state.board.objects.length = canvas_state.curvesandimages_len
+    canvas_state.curvesandimages_len += 1
+
+    if(src in canvas_state.board.src_index) {
+        index = canvas_state.board.src_index[src]
+        let img = canvas_state.board.index_images[index]
+
+        if (topleft == undefined) {
+            topleft = cursor_pixel_pos
+            topleft.x += canvas_state.offset.x - img.width * 0.5 / dpi
+            topleft.y += canvas_state.offset.y - img.height * 0.5 / dpi
+        }
+        if (botright == undefined) {
+            botright = new Vector2(topleft.x + img.width / dpi, topleft.y + img.height / dpi)
+        }
+
+        // Создали новое изображение
+        canvas_state.board.objects.push({
+            type: "image",
+            topleft: topleft,
+            botright: botright,
+            index: index
+        })
+
+        drawCurves(debug="image_loaded")
+    } else {
+        index = canvas_state.board.index_images.length
+        img = new ExtendedImage(src)
+        canvas_state.board.src_index[src] = index
+        canvas_state.board.index_images.push(img)
+
+        if (topleft !== undefined && botright !== undefined) {
+            canvas_state.board.objects.push({
+                type: "image",
+                topleft: topleft,
+                botright: botright,
+                index: index
+            })
+            drawCurves(debug="image_loaded")
+        }else{
+            insert_object = {type: "image_unloaded", index: index}
+            canvas_state.board.objects.push(insert_object)
+
+            img.decode().then(() => {
+                if (topleft == undefined) {
+                    topleft = cursor_pixel_pos
+                    topleft.x += canvas_state.offset.x - img.width * 0.5 / dpi
+                    topleft.y += canvas_state.offset.y - img.height * 0.5 / dpi
+                }
+
+                if (botright == undefined)
+                    botright = new Vector2(topleft.x + img.width / dpi, topleft.y + img.height / dpi)
+
+                insert_object.topleft = topleft
+                insert_object.botright = botright
+                insert_object.type = "image"
+                drawCurves(debug="image_loaded")
+            });
+        }
+    }
+}
 
 function init() {
     setCanvasWidthHeight()
@@ -316,14 +394,12 @@ function init() {
         json_file_data = JSON.parse(json_file_data)
         for(let i=0;i<json_file_data.length;i++) {
             let elem = json_file_data[i]
-            if (elem.type == "image"){
-                let img = new Image()
-                img.src = elem.image
-                img.onload = () => drawCurves(debug="image_loaded")
-                elem = new MyImage(img, elem.topleft, elem.botright)
+            if (elem.type == "image") {
+                addNewImage(src=elem.image, topleft=elem.topleft, botright=elem.botright)
+            }else{
+                canvas_state.board.objects.push(elem)
+                canvas_state.curvesandimages_len += 1
             }
-            canvas_state.curvesandimages_len += 1
-            canvas_state.board.objects.push(elem)
         }
         console.log("Contents are loaded!")
         drawCurves(debug="json_loaded")
@@ -331,7 +407,6 @@ function init() {
     .catch(error => {
         console.error('There was a problem with the fetch operation: ' + error.message);
     })
-
 
     // canvas mousedown event happens first and registers mouse left and right clicks
     canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
@@ -363,23 +438,7 @@ function init() {
                 let blob = e.clipboardData.items[last].getAsFile();
                 let reader = new FileReader();
                 reader.onload = function(event) {
-                    const img = new Image();
-                    img.src = event.target.result; // Set source path
-                    img.onload = () => {
-                        let topleft = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
-                        topleft.x -= img.width * 0.5 / dpi
-                        topleft.y -= img.height * 0.5 / dpi
-                        topleft.add(canvas_state.offset)
-                        let botright = new Vector2(topleft.x + img.width / dpi, topleft.y + img.height / dpi)
-
-                        canvas_state.board.objects.length = canvas_state.curvesandimages_len
-                        canvas_state.curvesandimages_len += 1
-                        canvas_state.board.objects.push(new MyImage(img, topleft, botright));
-                        drawCurves(debug="image_inserted");
-                    };
-//
-//                    //console.log(typeof(event.target.result))
-//                    //console.log(event.target.result)
+                    addNewImage(event.target.result)
                 };
                 reader.readAsDataURL(blob);
                 break
@@ -550,7 +609,7 @@ function drawCurves_inner() {
 
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.board.objects[i];
-        if (elem.type == "deleted") continue
+        if (elem.type == "deleted" || elem.type == "image_unloaded") continue
 
         // Добавляем ширину кисти к bbox
         let curve_bbox_linewidth_addition = (elem.type == "curve") ? elem.width * 0.5 : 0
@@ -590,7 +649,6 @@ function drawCurves_inner() {
             ctx.stroke()
             ctx.closePath()
         }else if (elem.type === 'image') {
-            // Paste image so that current cursor is in the center of an image
             //ctx.setTransform(1, 0, 0, 1, 0, 0)
 
 // Границы изображения
@@ -617,14 +675,13 @@ function drawCurves_inner() {
                 let topleft_y = Math.round(elem.topleft.y * scale) - pixel_offset_y
                 let image_pixel_width = Math.round((elem.botright.x - elem.topleft.x) * scale)
                 let image_pixel_height = Math.round((elem.botright.y - elem.topleft.y) * scale)
-                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
-                //console.log(true)
+                ctx.drawImage(canvas_state.board.index_images[elem.index], topleft_x, topleft_y, image_pixel_width, image_pixel_height)
             }else{
                 let topleft_x = (elem.topleft.x * scale) - pixel_offset_x
                 let topleft_y = (elem.topleft.y * scale) - pixel_offset_y
                 let image_pixel_width = (elem.botright.x - elem.topleft.x) * scale
                 let image_pixel_height = (elem.botright.y - elem.topleft.y) * scale
-                ctx.drawImage(elem.image, topleft_x, topleft_y, image_pixel_width, image_pixel_height)
+                ctx.drawImage(canvas_state.board.index_images[elem.index], topleft_x, topleft_y, image_pixel_width, image_pixel_height)
             }
         }
     }
@@ -788,7 +845,8 @@ function save_board_state() {
     // Serialize canvas_state object to a file
     // Then read it back to restore session. If board was dragging then end it.
 
-    let bl = new Blob([JSON.stringify(canvas_state.board.objects)], {type: "application/json"})
+    delete canvas_state.board.src_index
+    let bl = new Blob([JSON.stringify(canvas_state.board)], {type: "application/json"})
     console.log(bl);
     let a = document.createElement("a");
     a.href = URL.createObjectURL(bl);
