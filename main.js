@@ -693,6 +693,12 @@ function drawCurves_inner() {
 function register_click(e) {
     canvas_state.flags.left_click = e.buttons & 1
     canvas_state.flags.right_click = e.buttons & 2
+
+    if (!canvas_state.flags.left_click) {
+        // Левая кнопка мыши не нажата
+        canvas_state.flags.curve_ended = true
+        return
+    }
 }
 
 function segment_intersection(m0,m1,m2,m3) {
@@ -897,16 +903,6 @@ function drawCrossScreenCenter() {
     ctx.moveTo(0, canvas.height / 2);
     ctx.lineTo(canvas.width, canvas.height / 2);
     ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.closePath();
-}
-
-function drawLine(x1, y1, x2, y2, lw) {
-    // Cross in the center
-    ctx.beginPath();
-    ctx.moveTo(x1, y1);
-    ctx.lineTo(x2, y2);
-    ctx.lineWidth = lw;
     ctx.stroke();
     ctx.closePath();
 }
