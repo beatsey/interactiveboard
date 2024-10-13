@@ -408,6 +408,7 @@ function init() {
 
     // canvas mousedown event happens first and registers mouse left and right clicks
     canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
+    addEventListener("pointercancel", e => {register_click(e)}, false)
     addEventListener("pointermove", e => {pointermove(e)}, false)
     addEventListener("pointerup", e => register_click(e), false)
 
@@ -689,6 +690,8 @@ function drawCurves_inner() {
     }
     canvas_state.flags.redraw_frame = true
 }
+
+// Надо отдельно обрабатывать два клика.
 
 function register_click(e) {
     canvas_state.flags.left_click = e.buttons & 1
