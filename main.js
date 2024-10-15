@@ -248,6 +248,7 @@ let canvas_state = {
         // Variable indicates whether left or right shift is pressed to make a forizontal
         shift: false
     },
+    pointeridsdown: new Set(),
     // current position on the screen in pixels (without the offset)
     current_screen_pixel_pos: new Vector2(0, 0),
     previous_screen_holst_pos: new Vector2(0, 0)
@@ -406,11 +407,18 @@ function init() {
         console.error('There was a problem with the fetch operation: ' + error.message);
     })
 
+
     // canvas mousedown event happens first and registers mouse left and right clicks
-    canvas.addEventListener("pointerdown", e => {register_click(e); pointermove(e)}, false)
+    canvas.addEventListener("pointerdown", e => {
+        canvas_state.pointeridsdown.add(e.pointerId)
+        register_click(e); pointermove(e)
+    }, false)
     addEventListener("pointercancel", e => {register_click(e)}, false)
     addEventListener("pointermove", e => {pointermove(e)}, false)
-    addEventListener("pointerup", e => register_click(e), false)
+    addEventListener("pointerup", e => {
+        canvas_state.pointeridsdown.delete(e.pointerId)
+        register_click(e)
+    }, false)
 
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
@@ -727,6 +735,7 @@ function segment_intersection(m0,m1,m2,m3) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
+    console.log(canvas_state.pointeridsdown.size)
     check_dragging()
 
     // Позиция курсора в пикселях
