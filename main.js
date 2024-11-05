@@ -252,7 +252,7 @@
         // current position on the screen in pixels (without the offset)
         current_screen_pixel_pos: {
             0: new Vector2(0, 0),
-        }
+        },
         previous_screen_holst_pos: new Vector2(0, 0)
     }
 
