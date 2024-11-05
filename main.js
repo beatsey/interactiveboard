@@ -250,7 +250,9 @@
         },
         pointeridsdown: new Set(),
         // current position on the screen in pixels (without the offset)
-        current_screen_pixel_pos: new Vector2(0, 0),
+        current_screen_pixel_pos: {
+            0: new Vector2(0, 0),
+        }
         previous_screen_holst_pos: new Vector2(0, 0)
     }
 
@@ -259,7 +261,7 @@
         if (canvas_state.flags.spacebar || canvas_state.flags.right_click) {
             if (canvas_state.flags.dragging) return
 
-            start_screen = canvas_state.current_screen_pixel_pos.cpy()
+            start_screen = canvas_state.current_screen_pixel_pos[0].cpy()
             start_offset = canvas_state.offset.cpy()
             canvas_state.flags.dragging = true
         }else canvas_state.flags.dragging = false
@@ -317,7 +319,7 @@
 
     function addNewImage(src, topleft, botright) {
         let cursor_pixel_pos
-        if (topleft == undefined) cursor_pixel_pos = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
+        if (topleft == undefined) cursor_pixel_pos = canvas_state.current_screen_pixel_pos[0].cpy().mul(1 / scale)
 
         canvas_state.board.objects.length = canvas_state.curvesandimages_len
         canvas_state.curvesandimages_len += 1
@@ -568,8 +570,8 @@
         if (wheel_scale !== whs) {
             let pixel_to_board = (wheel_scale - whs) / dpi
             if (pointer_position) {
-                canvas_state.offset.x -= canvas_state.current_screen_pixel_pos.x * pixel_to_board
-                canvas_state.offset.y -= canvas_state.current_screen_pixel_pos.y * pixel_to_board
+                canvas_state.offset.x -= canvas_state.current_screen_pixel_pos[0].x * pixel_to_board
+                canvas_state.offset.y -= canvas_state.current_screen_pixel_pos[0].y * pixel_to_board
             }else{
                 canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
                 canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
@@ -759,11 +761,11 @@
         check_dragging()
 
         // Позиция курсора в пикселях
-        canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+        canvas_state.current_screen_pixel_pos[0] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
         if (canvas_state.flags.dragging) {
             // Если нажат пробел или пкм, то мы перемещаем canvas
-            canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos).mul(1 / scale).add(start_offset)
+            canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos[0]).mul(1 / scale).add(start_offset)
             drawCurves(debug="dragging")
             return
         }
@@ -775,7 +777,7 @@
         }
 
         // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-        let pt = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale).add(canvas_state.offset)
+        let pt = canvas_state.current_screen_pixel_pos[0].cpy().mul(1 / scale).add(canvas_state.offset)
 
         if(canvas_state.tool == "pencil") {
             // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
