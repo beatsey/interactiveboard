@@ -427,7 +427,7 @@ function init() {
 
     canvas.addEventListener("pointerdown", e => {
         canvas_state.pointeridsdown.add(e.pointerId)
-        canvas_state.pointers[e.pointerId] = {}
+        canvas_state.pointers[e.pointerId] = undefined // Метка того, что точка первая
         register_click(e); pointermove(e)
     }, false)
 
@@ -747,6 +747,9 @@ function pointermove(e) {
     if (ids.length == 0) return; // Движение мышью без нажатия (не было лкм или касаний)
 
     if(e.pointerId != ids[0]) return; // Работаем только с одним касанием!
+
+    let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
+
     // TODO: поддерживаем второе!
 
     // При старте движения подождать 100мс, мб прилетит ещё один клик, тогда нужно делать ресайз!
@@ -776,18 +779,21 @@ function pointermove(e) {
         return
     }
 
-    if (!canvas_state.flags.left_click) {
-        // Левая кнопка мыши не нажата
-        canvas_state.flags.curve_ended = true
-        return
-    }
+    //if (!canvas_state.flags.left_click) {
+//    if (canvas_state.pointers[e.pointerId] == undefined) {
+//            canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+//        // Левая кнопка мыши не нажата
+//        canvas_state.flags.curve_ended = true
+//        return
+//    }
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
     let pt = canvas_state.current_screen_pixel_pos[0].cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
-        if (canvas_state.flags.curve_ended) {
+        //if (canvas_state.flags.curve_ended) {
+        if (is_curve_start) {
             let curve = new Curve
             canvas_state.board.objects.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
@@ -836,10 +842,7 @@ function pointermove(e) {
         // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
 
         // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
-        if (canvas_state.flags.curve_ended) {
-            canvas_state.flags.curve_ended = false
-        }
-        else
+        if (!is_curve_start)
         for(let i=canvas_state.curvesandimages_len - 1;i>=0;i--) {
             let figure = canvas_state.board.objects[i]
             if(figure.type != "curve") continue
