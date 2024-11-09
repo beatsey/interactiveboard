@@ -240,20 +240,14 @@ let canvas_state = {
     flags: {
         redraw_frame: true,
         round_images: true, // Флаг округления координат image в drawCurves (для четкости)
-        curve_ended: true, // Флаг равен true, если предыдущая кривая закончена
         spacebar: false,
-        dragging: false,
         right_click: false,
-        left_click: false,
         // Variable indicates whether left or right shift is pressed to make a forizontal
         shift: false
     },
-    pointeridsdown: new Set(),
     pointers: {},
     // current position on the screen in pixels (without the offset)
-    current_screen_pixel_pos: {
-        0: new Vector2(0, 0),
-    },
+    current_screen_pixel_pos: new Vector2(0, 0),
     previous_screen_holst_pos: new Vector2(0, 0)
 }
 
@@ -289,17 +283,6 @@ class ExtendedImage extends Image {
     }
 }
 
-// Function checks whether dragging should be done and starts / stops it automatically
-function check_dragging() {
-    if (canvas_state.flags.spacebar || canvas_state.flags.right_click) {
-        if (canvas_state.flags.dragging) return
-
-        start_screen = canvas_state.current_screen_pixel_pos[0].cpy()
-        start_offset = canvas_state.offset.cpy()
-        canvas_state.flags.dragging = true
-    }else canvas_state.flags.dragging = false
-}
-
 function setCanvasWidthHeight() {
     canvas = document.getElementById('can')
     dpi = devicePixelRatio
@@ -326,7 +309,7 @@ function setCanvasWidthHeight() {
 
 function addNewImage(src, topleft, botright) {
     let cursor_pixel_pos
-    if (topleft == undefined) cursor_pixel_pos = canvas_state.current_screen_pixel_pos[0].cpy().mul(1 / scale)
+    if (topleft == undefined) cursor_pixel_pos = canvas_state.pointers[e.pointerId].cpy().mul(1 / scale)
 
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len += 1
@@ -417,7 +400,6 @@ function init() {
     })
 
     let pointer_end_action = e => {
-        canvas_state.pointeridsdown.delete(e.pointerId)
         delete canvas_state.pointers[e.pointerId]
         register_click(e)
     };
@@ -426,7 +408,6 @@ function init() {
     addEventListener("pointerup", pointer_end_action, false)
 
     canvas.addEventListener("pointerdown", e => {
-        canvas_state.pointeridsdown.add(e.pointerId)
         canvas_state.pointers[e.pointerId] = undefined // Метка того, что точка первая
         register_click(e); pointermove(e)
     }, false)
@@ -543,7 +524,6 @@ function undo() {
         canvas_state.curvesandimages_len -= 1
     }
 
-    canvas_state.flags.curve_ended = true
     drawCurves(debug="undo")
 }
 
@@ -559,7 +539,6 @@ function redo() {
         canvas_state.curvesandimages_len += 1
     }
 
-    canvas_state.flags.curve_ended = true;
     drawCurves(debug="redo");
 }
 
@@ -578,8 +557,8 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
     if (wheel_scale !== whs) {
         let pixel_to_board = (wheel_scale - whs) / dpi
         if (pointer_position) {
-            canvas_state.offset.x -= canvas_state.current_screen_pixel_pos[0].x * pixel_to_board
-            canvas_state.offset.y -= canvas_state.current_screen_pixel_pos[0].y * pixel_to_board
+            canvas_state.offset.x -= canvas_state.current_screen_pixel_pos.x * pixel_to_board
+            canvas_state.offset.y -= canvas_state.current_screen_pixel_pos.y * pixel_to_board
         }else{
             canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
             canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
@@ -710,14 +689,7 @@ function drawCurves_inner() {
 // Надо отдельно обрабатывать два клика.
 
 function register_click(e) {
-    canvas_state.flags.left_click = e.buttons & 1
     canvas_state.flags.right_click = e.buttons & 2
-
-    if (!canvas_state.flags.left_click) {
-        // Левая кнопка мыши не нажата
-        canvas_state.flags.curve_ended = true
-        return
-    }
 }
 
 function segment_intersection(m0,m1,m2,m3) {
@@ -743,11 +715,13 @@ function segment_intersection(m0,m1,m2,m3) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
+    canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
     let ids = Object.keys(canvas_state.pointers)
     if (ids.length == 0) return; // Движение мышью без нажатия (не было лкм или касаний)
 
     if(e.pointerId != ids[0]) return; // Работаем только с одним касанием!
 
+    // Зарегистрировано касание, которое движется! ЛКМ или КАСАНИЕ экрана смартфона
     let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
 
     // TODO: поддерживаем второе!
@@ -756,49 +730,35 @@ function pointermove(e) {
     // В этом случае не нужно регистрировать касание. Нужно создать временную кривую, но не отображать её
     // И удалить в случае, если это всё-таки ресайз.
     // TODO: учитывать позиции курсоров по их ID. Хранить не просто один указатель с его координатами, а все!
-//    if(canvas_state.pointeridsdown.size > 2) {
-//        //console.log("MORE THAN 2!", canvas_state.pointeridsdown.size)
-//        return
-//    }
-//
-//    if(canvas_state.pointeridsdown.size == 2) {
-//        //TODO: ресайз таким образом, чтобы два пальца оставались на тех же координатах на доске.
-//        //console.log("RESIZE!")
-//        return
-//    }
-    check_dragging()
 
-    // Позиция курсора в пикселях
-    canvas_state.current_screen_pixel_pos[0] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+    // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    if (canvas_state.flags.dragging) {
-        // Если нажат пробел или пкм, то мы перемещаем canvas
-        canvas_state.offset = start_screen.cpy().sub(canvas_state.current_screen_pixel_pos[0]).mul(1 / scale).add(start_offset)
+    // Если нажат пробел или пкм, то мы перемещаем canvas
+    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click)
+
+    if (is_curve_start || !is_dragging) {
+        start_screen = canvas_state.pointers[e.pointerId].cpy()
+        start_offset = canvas_state.offset.cpy()
+    }
+
+    if (is_dragging) {
+        canvas_state.offset = start_screen.cpy().sub(canvas_state.pointers[e.pointerId]).mul(1 / scale).add(start_offset)
         drawCurves(debug="dragging")
         return
     }
 
-    //if (!canvas_state.flags.left_click) {
-//    if (canvas_state.pointers[e.pointerId] == undefined) {
-//            canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
-//        // Левая кнопка мыши не нажата
-//        canvas_state.flags.curve_ended = true
-//        return
-//    }
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    let pt = canvas_state.current_screen_pixel_pos[0].cpy().mul(1 / scale).add(canvas_state.offset)
+    let pt = canvas_state.pointers[e.pointerId].cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
-        //if (canvas_state.flags.curve_ended) {
         if (is_curve_start) {
             let curve = new Curve
             canvas_state.board.objects.length = canvas_state.curvesandimages_len
             canvas_state.curvesandimages_len += 1
             canvas_state.board.objects.push(curve)
-            canvas_state.flags.curve_ended = false
 
             curve.push(pt)
         }else{
@@ -838,7 +798,8 @@ function pointermove(e) {
                 curve.push(pt)
             }
         }
-    }else if(canvas_state.tool == "eraser") {
+    }else
+    if(canvas_state.tool == "eraser") {
         // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
 
         // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
@@ -930,7 +891,6 @@ function erase() {
     let arr = canvas_state.board.objects
     canvas_state.board.objects = [{"type": "deleted", "index": 0, "array": arr}]
     canvas_state.curvesandimages_len = 1
-    canvas_state.flags.curve_ended = true
 }
 
 function drawCrossScreenCenter() {
