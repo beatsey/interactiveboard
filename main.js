@@ -743,31 +743,31 @@ function segment_intersection(m0,m1,m2,m3) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
-    if (canvas_state.pointers.size == 0) return; // Движение мышью без нажатия (не было лкм или касаний)
+    let ids = Object.keys(canvas_state.pointers)
+    if (ids.length == 0) return; // Движение мышью без нажатия (не было лкм или касаний)
 
-    // Берём 1 или 2 касания:
-    console.log(canvas_state.pointers.size, canvas_state.pointers, e.timeStamp)
+    if(e.pointerId != ids[0]) return; // Работаем только с одним касанием!
+    // TODO: поддерживаем второе!
 
     // При старте движения подождать 100мс, мб прилетит ещё один клик, тогда нужно делать ресайз!
     // В этом случае не нужно регистрировать касание. Нужно создать временную кривую, но не отображать её
     // И удалить в случае, если это всё-таки ресайз.
     // TODO: учитывать позиции курсоров по их ID. Хранить не просто один указатель с его координатами, а все!
-    if(canvas_state.pointeridsdown.size > 2) {
-        //console.log("MORE THAN 2!", canvas_state.pointeridsdown.size)
-        return
-    }
-
-    if(canvas_state.pointeridsdown.size == 2) {
-        //TODO: ресайз таким образом, чтобы два пальца оставались на тех же координатах на доске.
-        //console.log("RESIZE!")
-        return
-    }
-
-    console.log(canvas_state.pointeridsdown.size)
+//    if(canvas_state.pointeridsdown.size > 2) {
+//        //console.log("MORE THAN 2!", canvas_state.pointeridsdown.size)
+//        return
+//    }
+//
+//    if(canvas_state.pointeridsdown.size == 2) {
+//        //TODO: ресайз таким образом, чтобы два пальца оставались на тех же координатах на доске.
+//        //console.log("RESIZE!")
+//        return
+//    }
     check_dragging()
 
     // Позиция курсора в пикселях
     canvas_state.current_screen_pixel_pos[0] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+    //canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
