@@ -715,12 +715,14 @@ function segment_intersection(m0,m1,m2,m3) {
 
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
-    canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
-
     // ids - список текущих указателей с касанием (ЛКМ или тач экрана смартфона)
     let ids = Object.keys(canvas_state.pointers)
-    if (ids.length == 0) return; // Движение мыши без лкм игнорируем
-    if(!(e.pointerId == ids[0] || e.pointerId == ids[1])) return; // Работаем максимум с двумя касаниями
+
+    if (ids.length == 0 || ids[0] == e.pointerId)
+        canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+
+    // Движение без pointerdown игнорируем + работаем максимум с двумя касаниями
+    if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
 
     // Флаг первого касания
     let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
