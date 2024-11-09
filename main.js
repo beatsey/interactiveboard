@@ -735,15 +735,7 @@ function pointermove(e) {
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-//    if () {
-//        // Ресайз двумя пальцами!
-//        let pos1 = canvas_state.pointers[
-//
-//        return;
-//    }
-
-
-    // Если нажат пробел или пкм, то режим перемещения canvas
+    // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
     let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || ids.length >= 2)
     if (is_curve_start || !is_dragging) {
         start_screen = canvas_state.pointers[e.pointerId].cpy()
