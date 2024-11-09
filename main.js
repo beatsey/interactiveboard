@@ -767,7 +767,7 @@ function pointermove(e) {
 
     // Позиция курсора в пикселях
     canvas_state.current_screen_pixel_pos[0] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
-    //canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+    canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     if (canvas_state.flags.dragging) {
         // Если нажат пробел или пкм, то мы перемещаем canvas
