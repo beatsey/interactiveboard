@@ -418,7 +418,7 @@ function init() {
 
     let pointer_end_action = e => {
         canvas_state.pointeridsdown.delete(e.pointerId)
-        canvas_state.pointers.delete(e.pointerId)
+        delete canvas_state.pointers[e.pointerId]
         register_click(e)
     };
 
