@@ -722,7 +722,8 @@ function pointermove(e) {
         canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     // Движение без pointerdown игнорируем + работаем максимум с двумя касаниями
-    if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
+    //if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
+    if(ids.length == 0 || e.pointerId != ids[0]) return;
 
     // Флаг первого касания
     let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
