@@ -416,7 +416,11 @@ function init() {
         console.error('There was a problem with the fetch operation: ' + error.message);
     })
 
-    // canvas mousedown event happens first and registers mouse left and right clicks
+    let pointer_end_action = e => {
+        canvas_state.pointeridsdown.delete(e.pointerId)
+        canvas_state.pointers.delete(e.pointerId)
+        register_click(e)
+    };
 
     addEventListener("pointercancel", pointer_end_action, false)
     addEventListener("pointerup", pointer_end_action, false)
@@ -426,12 +430,6 @@ function init() {
         canvas_state.pointers[e.pointerId] = {}
         register_click(e); pointermove(e)
     }, false)
-
-    let pointer_end_action = e => {
-        canvas_state.pointeridsdown.delete(e.pointerId)
-        canvas_state.pointers.delete(e.pointerId)
-        register_click(e)
-    };
 
     addEventListener("pointermove", e => {pointermove(e)}, false)
     addEventListener("contextmenu", e => e.preventDefault(), false)
