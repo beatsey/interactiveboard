@@ -309,7 +309,7 @@ function setCanvasWidthHeight() {
 
 function addNewImage(src, topleft, botright) {
     let cursor_pixel_pos
-    if (topleft == undefined) cursor_pixel_pos = canvas_state.pointers[e.pointerId].cpy().mul(1 / scale)
+    if (topleft == undefined) cursor_pixel_pos = canvas_state.current_screen_pixel_pos.cpy().mul(1 / scale)
 
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len += 1
@@ -716,15 +716,14 @@ function segment_intersection(m0,m1,m2,m3) {
 // Function to track movement. Triggers on window (not canvas). This allows to track mouse outside the browser window.
 function pointermove(e) {
     canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+
+    // ids - список текущих указателей с касанием (ЛКМ или тач экрана смартфона)
     let ids = Object.keys(canvas_state.pointers)
-    if (ids.length == 0) return; // Движение мышью без нажатия (не было лкм или касаний)
+    if (ids.length == 0) return; // Движение мыши без лкм игнорируем
+    if(!(e.pointerId == ids[0] || e.pointerId == ids[1])) return; // Работаем максимум с двумя касаниями
 
-    if(e.pointerId != ids[0]) return; // Работаем только с одним касанием!
-
-    // Зарегистрировано касание, которое движется! ЛКМ или КАСАНИЕ экрана смартфона
+    // Флаг первого касания
     let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
-
-    // TODO: поддерживаем второе!
 
     // При старте движения подождать 100мс, мб прилетит ещё один клик, тогда нужно делать ресайз!
     // В этом случае не нужно регистрировать касание. Нужно создать временную кривую, но не отображать её
@@ -734,10 +733,17 @@ function pointermove(e) {
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    // Если нажат пробел или пкм, то мы перемещаем canvas
-    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click)
+//    if () {
+//        // Ресайз двумя пальцами!
+//        let pos1 = canvas_state.pointers[
+//
+//        return;
+//    }
 
-    if (is_curve_start || !is_dragging) {
+
+    // Если нажат пробел или пкм, то режим перемещения canvas
+    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click)
+    if (is_curve_start || !is_dragging || (ids.length >= 2)) {
         start_screen = canvas_state.pointers[e.pointerId].cpy()
         start_offset = canvas_state.offset.cpy()
     }
@@ -747,7 +753,6 @@ function pointermove(e) {
         drawCurves(debug="dragging")
         return
     }
-
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
     let pt = canvas_state.pointers[e.pointerId].cpy().mul(1 / scale).add(canvas_state.offset)
