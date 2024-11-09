@@ -742,8 +742,8 @@ function pointermove(e) {
 
 
     // Если нажат пробел или пкм, то режим перемещения canvas
-    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click)
-    if (is_curve_start || !is_dragging || (ids.length >= 2)) {
+    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || ids.length >= 2)
+    if (is_curve_start || !is_dragging) {
         start_screen = canvas_state.pointers[e.pointerId].cpy()
         start_offset = canvas_state.offset.cpy()
     }
