@@ -235,7 +235,7 @@ let canvas_state = {
 // offset of the current canvas position from (0,0)
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
-    lineWidth: 20,
+    lineWidth: 12,
     tool: "pencil",
     flags: {
         redraw_frame: true,
@@ -722,17 +722,15 @@ function pointermove(e) {
     if (ids.length == 0 || ids[0] == e.pointerId)
         canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    // Движение без pointerdown игнорируем + работаем только с первыми двумя касаниями
     if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
 
-    // Второе касание возможно только одновременно (в течение 50 мс) с первым!
-    if(e.pointerId == ids[1] && e.timeStamp - canvas_state.pointers[ids[0]].start_time > 50) return;
+    // Игнорируем все движения основного клика в первые 50 мс
+    // TODO: не игнорировать движения в первые 50 мс, а просто не отображать их действие на экране!
+    // Чтобы не было задержки в начале движения пальцем
+    if (e.pointerId == ids[0] && e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
 
     // Флаг первого касания
     let is_curve_start = (canvas_state.pointers[e.pointerId].pos == undefined)
-
-    // Игнорируем все движения основного клика в первые 50 мс
-    if (e.pointerId == ids[0] && e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
 
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
@@ -741,8 +739,13 @@ function pointermove(e) {
     if (e.pointerId != ids[0]) return;
 
     // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
-    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || ids.length >= 2)
+    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click ||
+        // Если два касания и время нажатия их одновременное
+        ids.length >= 2 && canvas_state.pointers[ids[1]].start_time - canvas_state.pointers[ids[0]].start_time <= 50
+    )
     // TODO: для ids.length >= 2 сделать зум вместе с переносом
+    // TODO: Если режим ресайза с двумя касаниями закончился, но один палец всё ещё касается, то делать перемещение
+    // TODO: Если потом опять второй палец добавляется, то опять ресайз
 
     if (is_curve_start || !is_dragging) {
         start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
