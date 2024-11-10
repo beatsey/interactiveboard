@@ -408,7 +408,7 @@ function init() {
     addEventListener("pointerup", pointer_end_action, false)
 
     canvas.addEventListener("pointerdown", e => {
-        canvas_state.pointers[e.pointerId] = undefined // Метка того, что точка первая
+        canvas_state.pointers[e.pointerId] = {start_time: e.timeStamp, pos: undefined} // Метка того, что точка первая
         register_click(e); pointermove(e)
     }, false)
 
@@ -718,39 +718,46 @@ function pointermove(e) {
     // ids - список текущих указателей с касанием (ЛКМ или тач экрана смартфона)
     let ids = Object.keys(canvas_state.pointers)
 
+    // Секция нужна для запоминания текущего положения курсора относительно которого будем делать ресайз колёсиком
     if (ids.length == 0 || ids[0] == e.pointerId)
         canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    // Движение без pointerdown игнорируем + работаем максимум с двумя касаниями
-    //if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
-    if(ids.length == 0 || e.pointerId != ids[0]) return;
+    // Движение без pointerdown игнорируем + работаем только с первыми двумя касаниями
+    if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
+    //if(ids.length == 0 || e.pointerId != ids[0]) return; // Только с одним
+
+    console.log(e.timeStamp - canvas_state.pointers[e.pointerId].start_time)
 
     // Флаг первого касания
-    let is_curve_start = (canvas_state.pointers[e.pointerId] == undefined)
+    let is_curve_start = (canvas_state.pointers[e.pointerId].pos == undefined)
 
     // При старте движения подождать 100мс, мб прилетит ещё один клик, тогда нужно делать ресайз!
     // В этом случае не нужно регистрировать касание. Нужно создать временную кривую, но не отображать её
     // И удалить в случае, если это всё-таки ресайз.
-    // TODO: учитывать позиции курсоров по их ID. Хранить не просто один указатель с его координатами, а все!
+
+    // Игнорируем все движения в первые 200 мс
+    if (e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
 
     // Позиция указателя в пикселях
-    canvas_state.pointers[e.pointerId] = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+    canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
     let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || ids.length >= 2)
+    // TODO: для ids.length >= 2 сделать зум вместе с переносом
+
     if (is_curve_start || !is_dragging) {
-        start_screen = canvas_state.pointers[e.pointerId].cpy()
+        start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
         start_offset = canvas_state.offset.cpy()
     }
 
     if (is_dragging) {
-        canvas_state.offset = start_screen.cpy().sub(canvas_state.pointers[e.pointerId]).mul(1 / scale).add(start_offset)
+        canvas_state.offset = start_screen.cpy().sub(canvas_state.pointers[e.pointerId].pos).mul(1 / scale).add(start_offset)
         drawCurves(debug="dragging")
         return
     }
 
     // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    let pt = canvas_state.pointers[e.pointerId].cpy().mul(1 / scale).add(canvas_state.offset)
+    let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
     if(canvas_state.tool == "pencil") {
         // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
