@@ -724,22 +724,21 @@ function pointermove(e) {
 
     // Движение без pointerdown игнорируем + работаем только с первыми двумя касаниями
     if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
-    //if(ids.length == 0 || e.pointerId != ids[0]) return; // Только с одним
 
-    console.log(e.timeStamp - canvas_state.pointers[e.pointerId].start_time)
+    // Второе касание возможно только одновременно (в течение 50 мс) с первым!
+    if(e.pointerId == ids[1] && e.timeStamp - canvas_state.pointers[ids[0]].start_time > 50) return;
 
     // Флаг первого касания
     let is_curve_start = (canvas_state.pointers[e.pointerId].pos == undefined)
 
-    // При старте движения подождать 100мс, мб прилетит ещё один клик, тогда нужно делать ресайз!
-    // В этом случае не нужно регистрировать касание. Нужно создать временную кривую, но не отображать её
-    // И удалить в случае, если это всё-таки ресайз.
-
-    // Игнорируем все движения в первые 200 мс
-    if (e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
+    // Игнорируем все движения основного клика в первые 50 мс
+    if (e.pointerId == ids[0] && e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
 
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+
+    // Дальше идёт обработка только основного клика
+    if (e.pointerId != ids[0]) return;
 
     // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
     let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || ids.length >= 2)
