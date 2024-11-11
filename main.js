@@ -239,6 +239,7 @@ let canvas_state = {
     tool: "pencil",
     flags: {
         redraw_frame: true,
+        is_resize: false,
         round_images: true, // Флаг округления координат image в drawCurves (для четкости)
         spacebar: false,
         right_click: false,
@@ -401,15 +402,50 @@ function init() {
 
     let pointer_end_action = e => {
         delete canvas_state.pointers[e.pointerId]
-        register_click(e)
+        canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
     };
 
     addEventListener("pointercancel", pointer_end_action, false)
     addEventListener("pointerup", pointer_end_action, false)
 
     canvas.addEventListener("pointerdown", e => {
-        canvas_state.pointers[e.pointerId] = {start_time: e.timeStamp, pos: undefined} // Метка того, что точка первая
-        register_click(e); pointermove(e)
+        canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
+        canvas_state.pointers[e.pointerId] = { // ПОЗИЦИЯ ВРЕМЯ
+            start_time: e.timeStamp,
+            start_pos: new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi)),
+            pos: undefined
+        }
+
+        let ids = Object.keys(canvas_state.pointers)
+        if (e.pointerId == ids[0]) {
+            // АКТИВИРУЕМ РЕСАЙЗ
+            canvas_state.flags.is_resize = (canvas_state.flags.right_click || canvas_state.flags.spacebar || canvas_state.tool == "movement")
+
+            if (!canvas_state.flags.is_resize) {
+                if (canvas_state.tool == "pencil") {
+                    // СОЗДАЁМ НОВУЮ КРИВУЮ
+
+                    let curve = new Curve
+                    canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                    canvas_state.curvesandimages_len += 1
+                    canvas_state.board.objects.push(curve)
+
+                    let pt = canvas_state.pointers[e.pointerId].start_pos.cpy().mul(1 / scale).add(canvas_state.offset)
+                    curve.push(pt)
+                }else if (canvas_state.tool == "eraser") {
+                    canvas_state.previous_screen_holst_pos = pt
+                }
+            }
+        } else if (e.pointerId == ids[1]) {
+            if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
+                // TODO:ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
+
+                start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
+                start_offset = canvas_state.offset.cpy()
+
+                canvas_state.flags.is_resize = true
+            }
+        }
     }, false)
 
     addEventListener("pointermove", e => {pointermove(e)}, false)
@@ -686,12 +722,6 @@ function drawCurves_inner() {
     canvas_state.flags.redraw_frame = true
 }
 
-// Надо отдельно обрабатывать два клика.
-
-function register_click(e) {
-    canvas_state.flags.right_click = e.buttons & 2
-}
-
 function segment_intersection(m0,m1,m2,m3) {
     let det = (m0.x - m1.x) * (m3.y - m2.y) - (m3.x - m2.x) * (m0.y - m1.y)
     if (det == 0) return false
@@ -722,129 +752,184 @@ function pointermove(e) {
     if (ids.length == 0 || ids[0] == e.pointerId)
         canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    if(ids.length == 0 || e.pointerId != ids[0] && e.pointerId != ids[1]) return;
-
-    // Игнорируем все движения основного клика в первые 50 мс
-    // TODO: не игнорировать движения в первые 50 мс, а просто не отображать их действие на экране!
-    // Чтобы не было задержки в начале движения пальцем
-    if (e.pointerId == ids[0] && e.timeStamp - canvas_state.pointers[e.pointerId].start_time < 50) return;
-
-    // Флаг первого касания
-    let is_curve_start = (canvas_state.pointers[e.pointerId].pos == undefined)
+    if(ids.length == 0 || ids.length == 1 && e.pointerId != ids[0] || ids.length >= 2 && e.pointerId != ids[0] && e.pointerId != ids[1]) return;
 
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    // Дальше идёт обработка только основного клика
-    if (e.pointerId != ids[0]) return;
+    if (e.pointerId == ids[0]){
+        if (canvas_state.flags.is_resize) // РЕСАЙЗ
+        {
+            if (ids.length >= 2) {
+                // ПЕРЕСЧИТЫВАЕМ SCALE и OFFSET
+                let p0 = canvas_state.pointers[ids[0]]
+                let p1 = canvas_state.pointers[ids[1]]
 
-    // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
-    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click ||
-        // Если два касания и время нажатия их одновременное
-        ids.length >= 2 && canvas_state.pointers[ids[1]].start_time - canvas_state.pointers[ids[0]].start_time <= 50
-    )
-    // TODO: для ids.length >= 2 сделать зум вместе с переносом
-    // TODO: Если режим ресайза с двумя касаниями закончился, но один палец всё ещё касается, то делать перемещение
-    // TODO: Если потом опять второй палец добавляется, то опять ресайз
+                let center = new Vector2((p0.pos.x + p1.pos.x) / 2, (p0.pos.y + p1.pos.y) / 2)
+                let start_center = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
 
-    if (is_curve_start || !is_dragging) {
-        start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
-        start_offset = canvas_state.offset.cpy()
-    }
+                canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
+                drawCurves(debug="two_finger_resize")
+                return
 
-    if (is_dragging) {
-        canvas_state.offset = start_screen.cpy().sub(canvas_state.pointers[e.pointerId].pos).mul(1 / scale).add(start_offset)
-        drawCurves(debug="dragging")
-        return
-    }
+            } else {
+                // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
+                let p0 = canvas_state.pointers[ids[0]]
 
-    // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
-    let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
-
-    if(canvas_state.tool == "pencil") {
-        // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
-        if (is_curve_start) {
-            let curve = new Curve
-            canvas_state.board.objects.length = canvas_state.curvesandimages_len
-            canvas_state.curvesandimages_len += 1
-            canvas_state.board.objects.push(curve)
-
-            curve.push(pt)
-        }else{
-            let curve = canvas_state.board.objects[canvas_state.board.objects.length - 1]
-
-            if (canvas_state.flags.shift) {
-                // Remove all points except the first one
-                if (curve.points.length > 1)
-                    curve.points.length--
-
-                // We get projection on point onto line
-                let lastpt = curve.points[curve.points.length - 1]
-                let vec_x = pt.x - lastpt.x
-                let vec_y = pt.y - lastpt.y
-                let vec_len = Math.sqrt(vec_x * vec_x + vec_y * vec_y)
-                if (vec_len == 0) return
-
-                let deg = -Math.sign(vec_y) * Math.acos(vec_x / vec_len) * 180 / Math.PI
-                let fi = Math.round(deg / canvas_state.SHIFT_LINE_STEP_DEGREES) * canvas_state.SHIFT_LINE_STEP_DEGREES / 180 * Math.PI
-
-                let s = Math.sin(fi)
-                let c = Math.cos(fi)
-                let A = -c
-                let B = s
-                let C = c * lastpt.x - s * lastpt.y
-
-                // pt is projection onto the line
-                let t = A * pt.x + B * pt.y + C
-                pt.x = lastpt.x + A * t
-                pt.y = lastpt.y + B * t
-
-                // TODO: Добавить прорисовку опорной прямой пунктиром
-                curve.push(pt)
-            }else if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
-                // Хотим добавлять ещё одну точку в прямую. Если все три образуют очень тупой треугольник, то нахер надо?
-                // Логично при рисовке убирать именно по углу треугольника, т.к. большой угол = круче парабола.
-                curve.push(pt)
+                canvas_state.offset = p0.start_pos.sub(p0.pos).mul(1 / scale).add(start_offset)
+                drawCurves(debug="one_finger_resize")
+                return
             }
         }
-    }else
-    if(canvas_state.tool == "eraser") {
-        // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
+        else // РИСУЕМ И СТИРАЕМ
+        {
+            // TODO: УЧИТЫВАТЬ 50 МС, ВИРТУАЛЬНЫЕ ИЗМЕНЕНИЯ, НЕ ОТОБРАЖАТЬ!
 
-        // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
-        if (!is_curve_start)
-        for(let i=canvas_state.curvesandimages_len - 1;i>=0;i--) {
-            let figure = canvas_state.board.objects[i]
-            if(figure.type != "curve") continue
+            let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
-            if (
-                Math.min(pt.x,canvas_state.previous_screen_holst_pos.x) > figure.botright.x ||
-                Math.max(pt.x,canvas_state.previous_screen_holst_pos.x) < figure.topleft.x ||
-                Math.max(pt.y,canvas_state.previous_screen_holst_pos.y) < figure.topleft.y ||
-                Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y
-            ) continue
+            if(canvas_state.tool == "pencil") {
+                // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
+                let curve = canvas_state.board.objects[canvas_state.board.objects.length - 1]
 
-            let pts = canvas_state.board.objects[i].points
-            let is_intersect = false
-            for(let p=1;p<pts.length;p++) {
-                // Проверяем пересечение отрезков
-                if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)) {
-                    is_intersect = true
-                    break
+                if (canvas_state.flags.shift) {
+                    // Remove all points except the first one
+                    if (curve.points.length > 1)
+                        curve.points.length--
+
+                    // We get projection on point onto line
+                    let lastpt = curve.points[curve.points.length - 1]
+                    let vec_x = pt.x - lastpt.x
+                    let vec_y = pt.y - lastpt.y
+                    let vec_len = Math.sqrt(vec_x * vec_x + vec_y * vec_y)
+                    if (vec_len == 0) return
+
+                    let deg = -Math.sign(vec_y) * Math.acos(vec_x / vec_len) * 180 / Math.PI
+                    let fi = Math.round(deg / canvas_state.SHIFT_LINE_STEP_DEGREES) * canvas_state.SHIFT_LINE_STEP_DEGREES / 180 * Math.PI
+
+                    let s = Math.sin(fi)
+                    let c = Math.cos(fi)
+                    let A = -c
+                    let B = s
+                    let C = c * lastpt.x - s * lastpt.y
+
+                    // pt is projection onto the line
+                    let t = A * pt.x + B * pt.y + C
+                    pt.x = lastpt.x + A * t
+                    pt.y = lastpt.y + B * t
+
+                    // TODO: Добавить прорисовку опорной прямой пунктиром
+                    curve.push(pt)
+                }else if (pt.x !== curve.points[curve.points.length-1].x || pt.y !== curve.points[curve.points.length-1].y) {
+                    // Хотим добавлять ещё одну точку в прямую. Если все три образуют очень тупой треугольник, то нахер надо?
+                    // Логично при рисовке убирать именно по углу треугольника, т.к. большой угол = круче парабола.
+                    curve.push(pt)
                 }
             }
+            else if(canvas_state.tool == "eraser")
+            {
+                // TODO: возможность удаления точек (сейчас не получается пересечь прямые)
 
-            if (is_intersect) { // Нашли пересечение с кривой, удаляем
-                canvas_state.board.objects.length = canvas_state.curvesandimages_len
-                let array = canvas_state.board.objects.splice(i, 1)
-                canvas_state.board.objects.push({"type": "deleted", "index": i, "array": array})
+                // Ищем пересечения отрезка ластика [lastpt, pt] с кривыми.
+                for(let i=canvas_state.curvesandimages_len - 1;i>=0;i--) {
+                    let figure = canvas_state.board.objects[i]
+                    if(figure.type != "curve") continue
+
+                    if (
+                        Math.min(pt.x,canvas_state.previous_screen_holst_pos.x) > figure.botright.x ||
+                        Math.max(pt.x,canvas_state.previous_screen_holst_pos.x) < figure.topleft.x ||
+                        Math.max(pt.y,canvas_state.previous_screen_holst_pos.y) < figure.topleft.y ||
+                        Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y
+                    ) continue
+
+                    let pts = canvas_state.board.objects[i].points
+                    let is_intersect = false
+                    for(let p=1;p<pts.length;p++) {
+                        // Проверяем пересечение отрезков
+                        if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)) {
+                            is_intersect = true
+                            break
+                        }
+                    }
+
+                    if (is_intersect) { // Нашли пересечение с кривой, удаляем
+                        canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                        let array = canvas_state.board.objects.splice(i, 1)
+                        canvas_state.board.objects.push({"type": "deleted", "index": i, "array": array})
+                    }
+                }
+                // Remember last pt for eraser
+                canvas_state.previous_screen_holst_pos = pt
             }
+
+            drawCurves(debug="pointermoved")
         }
 
-        // Remember last pt for eraser
-        canvas_state.previous_screen_holst_pos = pt
     }
-    drawCurves(debug="pointermoved")
+    else // e.pointerId == ids[1]
+    {
+        if (canvas_state.is_resize) {
+            // ПЕРЕСЧИТЫВАЕМ SCALE и OFFSET
+
+            let p0 = canvas_state.pointers[ids[0]]
+            let p1 = canvas_state.pointers[ids[1]]
+
+            let center = new Vector2((p0.pos.x + p1.pos.x) / 2, (p0.pos.y + p1.pos.y) / 2)
+            let start_center = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
+
+            canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
+            drawCurves(debug="two_finger_resize")
+            return
+        }
+
+    }
+
+    return
+
+//    let is_two_finger_resize = (ids.length >= 2 && canvas_state.pointers[ids[1]].start_time - canvas_state.pointers[ids[0]].start_time <= 50)
+//
+//    if (!is_two_finger_resize) {
+//        start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
+//        start_offset = canvas_state.offset.cpy()
+//    }
+//
+//    // Ресайз двумя пальцами на смартфоне
+//    if (is_two_finger_resize) {
+//        let p0 = canvas_state.pointers[ids[0]].pos
+//        let p1 = canvas_state.pointers[ids[1]].pos
+//
+//        let center = new Vector2((p0.x + p1.x) / 2, (p0.y + p1.y) / 2)
+//
+//        canvas_state.offset = canvas_state.pointers[e.pointerId].start_pos.cpy().sub(canvas_state.pointers[e.pointerId].pos).mul(1 / scale).add(start_offset)
+//        drawCurves(debug="two_finger_resize")
+//        return
+//    }
+//
+//    // Дальше идёт обработка только основного клика
+//    if (e.pointerId != ids[0]) return;
+//
+//    // Если нажат пробел или пкм или два пальца на экране смартфона, то режим перемещения canvas
+//    let is_dragging = (canvas_state.flags.spacebar || canvas_state.flags.right_click || is_two_finger_resize)
+//
+//    // TODO: для ids.length >= 2 сделать зум вместе с переносом
+//    // TODO: Если режим ресайза с двумя касаниями закончился, но один палец всё ещё касается, то делать перемещение
+//    // TODO: Если потом опять второй палец добавляется, то опять ресайз
+//
+//    if (!is_dragging) {
+//        start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
+//        start_offset = canvas_state.offset.cpy()
+//    }
+//
+//    if (is_dragging) {
+//        canvas_state.offset = start_screen.cpy().sub(canvas_state.pointers[e.pointerId].pos).mul(1 / scale).add(start_offset)
+//        drawCurves(debug="dragging")
+//        return
+//    }
+//
+//    // Текущее положение курсора мыши в системе координат холста (с учётом переноса, зума и т.д.)
+//    let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
+//
+
+//    drawCurves(debug="pointermoved")
 }
 
 function save() {
