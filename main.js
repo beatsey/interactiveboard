@@ -440,9 +440,11 @@ function init() {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
                 // TODO:ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
 
-                start_screen = canvas_state.pointers[e.pointerId].pos.cpy()
-                start_offset = canvas_state.offset.cpy()
+                let p0 = canvas_state.pointers[ids[0]]
+                let p1 = canvas_state.pointers[ids[1]]
 
+                start_screen = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
+                start_offset = canvas_state.offset.cpy()
                 canvas_state.flags.is_resize = true
             }
         }
