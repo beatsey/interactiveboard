@@ -435,10 +435,14 @@ function init() {
                 }else if (canvas_state.tool == "eraser") {
                     canvas_state.previous_screen_holst_pos = pt
                 }
+            }else{
+                // НАЧАЛО РЕСАЙЗА
+                start_offset = canvas_state.offset.cpy()
+                start_screen = canvas_state.pointers[ids[0]].start_pos.cpy()
             }
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
-                // TODO:ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
+                // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
 
                 let p0 = canvas_state.pointers[ids[0]]
                 let p1 = canvas_state.pointers[ids[1]]
@@ -759,7 +763,8 @@ function pointermove(e) {
     // Позиция указателя в пикселях
     canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
-    if (e.pointerId == ids[0]){
+    if (e.pointerId == ids[0])
+    {
         if (canvas_state.flags.is_resize) // РЕСАЙЗ
         {
             if (ids.length >= 2) {
@@ -772,16 +777,15 @@ function pointermove(e) {
 
                 canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
                 drawCurves(debug="two_finger_resize")
-                return
-
             } else {
                 // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
                 let p0 = canvas_state.pointers[ids[0]]
 
-                canvas_state.offset = p0.start_pos.sub(p0.pos).mul(1 / scale).add(start_offset)
+                canvas_state.offset = p0.start_pos.cpy().sub(p0.pos).mul(1 / scale).add(start_offset)
                 drawCurves(debug="one_finger_resize")
-                return
             }
+
+            return
         }
         else // РИСУЕМ И СТИРАЕМ
         {
@@ -882,7 +886,6 @@ function pointermove(e) {
             drawCurves(debug="two_finger_resize")
             return
         }
-
     }
 
     return
