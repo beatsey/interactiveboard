@@ -11,6 +11,19 @@
 // TODO: Поддержка вставки контента из миро (:
 // TODO: Поддержка математических формул (можно синтаксис latex, вообще бомба будет)
 
+if ("serviceWorker" in navigator) {
+    window.addEventListener("load", () => {
+        navigator.serviceWorker
+            .register("service-worker.js")
+            .then((registration) => {
+                console.log("Service Worker registered with scope:", registration.scope);
+            })
+            .catch((error) => {
+                console.log("Service Worker registration failed:", error);
+            });
+    });
+}
+
 class Vector2 {
     constructor(x = 0, y = 0) {
         this.x = x;
@@ -548,12 +561,6 @@ function init() {
             canvas_state.flags.shift = false
         }
     })
-
-    // ДЛЯ УБИРАНИЯ НАВИГАЦИИ
-    // Проверка, что на устройстве мобильный браузер
-    if (window.innerWidth <= 800 && window.innerHeight <= 600) {
-        window.scrollTo(0, 1);
-    }
 }
 
 function undo() {
