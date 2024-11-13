@@ -435,7 +435,7 @@ function init() {
                 start_wheel_scale = wheel_scale
             }
         } else if (e.pointerId == ids[1]) {
-            if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
+            if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 200) {
                 // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
 
                 canvas_state.flags.is_resize = true
