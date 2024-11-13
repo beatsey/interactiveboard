@@ -448,6 +448,8 @@ function init() {
                 start_wheel_scale = wheel_scale
             }
         }
+
+        pointermove(e)
     }, false)
 
     addEventListener("pointermove", pointermove, false)
