@@ -390,8 +390,6 @@ function init() {
                 pt.start_pos = pt.pos
             }
 
-            console.log(canvas_state.pointers)
-
             // НАЧАЛО РЕСАЙЗА
             start_offset = canvas_state.offset.cpy()
             start_scale = scale
@@ -399,8 +397,8 @@ function init() {
         }
     };
 
-    addEventListener("pointercancel", e => {console.log('cancel'); pointer_end_action(e)}, false)
-    addEventListener("pointerup", e => {console.log('up'); pointer_end_action(e)}, false)
+    addEventListener("pointercancel", pointer_end_action, false)
+    addEventListener("pointerup", pointer_end_action, false)
 
     canvas.addEventListener("pointerdown", e => {
         canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
@@ -755,14 +753,15 @@ function pointermove(e) {
     // ids - список текущих указателей с касанием (ЛКМ или тач экрана смартфона)
     let ids = Object.keys(canvas_state.pointers)
 
+    // Позиция указателя в пикселях
+    if (e.pointerId in canvas_state.pointers)
+        canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+
     // Секция нужна для запоминания текущего положения курсора относительно которого будем делать ресайз колёсиком
     if (ids.length == 0 || ids[0] == e.pointerId)
         canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     if(ids.length == 0 || ids.length == 1 && e.pointerId != ids[0] || ids.length >= 2 && e.pointerId != ids[0] && e.pointerId != ids[1]) return;
-
-    // Позиция указателя в пикселях
-    canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
 
     // РИСУЕМ КАРАНДАШОМ ИЛИ СТИРАЕМ
     if (e.pointerId == ids[0] && !canvas_state.flags.is_resize)
@@ -866,6 +865,9 @@ function pointermove(e) {
             let scale_mult = Math.sqrt(len2_start/len2_now)
             scale = start_scale
             wheel_scale = start_wheel_scale
+
+            console.log('MULT!', scale_mult, len2_now, p0.pos.x, p0.pos.y, p1.pos.x, p1.pos.y)
+
             zoom(speed=scale_mult, position=center)
 
             drawCurves(debug="two_finger_resize")
