@@ -390,6 +390,8 @@ function init() {
                 pt.start_pos = pt.pos
             }
 
+            console.log(canvas_state.pointers)
+
             // НАЧАЛО РЕСАЙЗА
             start_offset = canvas_state.offset.cpy()
             start_scale = scale
@@ -397,8 +399,8 @@ function init() {
         }
     };
 
-    addEventListener("pointercancel", pointer_end_action, false)
-    addEventListener("pointerup", pointer_end_action, false)
+    addEventListener("pointercancel", e => {console.log('cancel'); pointer_end_action(e)}, false)
+    addEventListener("pointerup", e => {console.log('up'); pointer_end_action(e)}, false)
 
     canvas.addEventListener("pointerdown", e => {
         canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
@@ -438,19 +440,15 @@ function init() {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
                 // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
 
-                let p0 = canvas_state.pointers[ids[0]]
-                p0.start_pos = p0.pos
+                canvas_state.flags.is_resize = true
+            }
 
-                //let p1 = canvas_state.pointers[ids[1]]
-
+            if(canvas_state.flags.is_resize) {
+                // Когда касается второй палец для ресайза, то фиксируем текущее касание первого
+                canvas_state.pointers[ids[0]].start_pos = canvas_state.pointers[ids[0]].pos
                 start_offset = canvas_state.offset.cpy()
                 start_scale = scale
                 start_wheel_scale = wheel_scale
-                canvas_state.flags.is_resize = true
-            }
-            else{
-                // Когда касается второй палец для ресайза, то фиксируем текущее касание первого
-                canvas_state.pointers[ids[0]].start_pos = canvas_state.pointers[ids[0]].pos
             }
         }
     }, false)
