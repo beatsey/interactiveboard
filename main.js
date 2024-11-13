@@ -38,27 +38,6 @@ class Vector2 {
     }
 }
 
-//class MyImage {
-//    type = 'image'
-//    constructor(index, topleft, botright) {
-//        this.index = index
-//        this.image = canvas_state.board.images[index]
-//        this.topleft = topleft
-//        this.botright = botright
-//    }
-//
-//    // Function is used in save_board_state method by stringify function
-//    // TODO: make toByteArray and fromByteArray methods to make fast serialization / deserialization
-//    toJSON() {
-//        return {
-//            type: this.type,
-//            index: this.index,
-//            topleft: this.topleft,
-//            botright: this.botright
-//        }
-//    }
-//}
-
 class Curve {
     constructor(color, width, points) {
         this.type = 'curve'
@@ -105,6 +84,7 @@ class Curve {
         this.points.push(point);
     }
 }
+
 /*
 * CODE OBFUSCATOR:
 https://obfuscator.io/
@@ -522,7 +502,7 @@ function init() {
         const current_browser_zoom = outerWidth/innerWidth
         if (scrollMoves.isMouse_scroll || e.ctrlKey || e.metaKey) {
             let speed = Math.exp(Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30) * 0.008)
-            zoom(speed=speed)
+            zoom(speed=speed, position=canvas_state.current_screen_pixel_pos)
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
@@ -543,13 +523,13 @@ function init() {
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
-                    zoom(speed=Math.exp(-40 * 0.008)) // zoom in
+                    zoom(speed=Math.exp(-40 * 0.008), position=canvas_state.current_screen_pixel_pos) // zoom in
                     break
                 case 'Minus':
-                    zoom(speed=Math.exp(40 * 0.008)) // zoom out
+                    zoom(speed=Math.exp(40 * 0.008), position=canvas_state.current_screen_pixel_pos) // zoom out
                     break
                 case 'Digit0':
-                    zoom(speed=1000, reset_scale=true) // speed should be > 1.1 for sharp image coordinates
+                    zoom(speed=1000, position=canvas_state.current_screen_pixel_pos, reset_scale=true) // speed should be > 1.1 for sharp image coordinates
                     break
                 case 'KeyZ':
                     undo()
@@ -605,7 +585,7 @@ function redo() {
     drawCurves(debug="redo");
 }
 
-function zoom(speed, position=undefined, reset_scale=false) {
+function zoom(speed, position, reset_scale=false) {
     let whs = wheel_scale;
     if (reset_scale) {
         wheel_scale = 1;
@@ -619,17 +599,13 @@ function zoom(speed, position=undefined, reset_scale=false) {
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
     if (wheel_scale !== whs) {
         let pixel_to_board = (wheel_scale - whs) / dpi
-        if (position !== undefined) {
-            canvas_state.offset.x -= position.x * pixel_to_board
-            canvas_state.offset.y -= position.y * pixel_to_board
-        }else{
-            canvas_state.offset.x -= canvas_state.current_screen_pixel_pos.x * pixel_to_board
-            canvas_state.offset.y -= canvas_state.current_screen_pixel_pos.y * pixel_to_board
 
-            // Center of screen
-            // canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
-            // canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
-        }
+        canvas_state.offset.x -= position.x * pixel_to_board
+        canvas_state.offset.y -= position.y * pixel_to_board
+
+        // Center of screen
+        // canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
+        // canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
 
         scale = dpi / wheel_scale
         drawCurves(round_images=Math.abs(speed) > 1.12, debug="zoom")
@@ -662,11 +638,13 @@ function drawCurves_inner() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
-//    drawCrossScreenCenter()
-
     // Необходимо для чётких картинок и линий.
-    const pixel_offset_x = Math.round(canvas_state.offset.x * scale)
-    const pixel_offset_y = Math.round(canvas_state.offset.y * scale)
+    // const pixel_offset_x = Math.floor(canvas_state.offset.x * scale)
+    // const pixel_offset_y = Math.floor(canvas_state.offset.y * scale)
+
+    // БОЛЕЕ ПЛАВНАЯ ВЕРСИЯ
+    const pixel_offset_x = (canvas_state.offset.x * scale)
+    const pixel_offset_y = (canvas_state.offset.y * scale)
 
     for(let i = 0; i < canvas_state.curvesandimages_len; i++) {
         let elem = canvas_state.board.objects[i];
