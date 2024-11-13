@@ -870,6 +870,7 @@ function pointermove(e) {
         }
 
         drawCurves(debug="pointermoved")
+        return
     }
 
     if (canvas_state.flags.is_resize) // РЕСАЙЗ
@@ -898,8 +899,6 @@ function pointermove(e) {
             canvas_state.offset = p0.start_pos.cpy().sub(p0.pos).mul(1 / scale).add(start_offset)
             drawCurves(debug="one_finger_resize")
         }
-
-        return
     }
 }
 
