@@ -415,15 +415,14 @@ function init() {
             canvas_state.flags.is_resize = (canvas_state.flags.right_click || canvas_state.flags.spacebar || canvas_state.tool == "movement")
 
             if (!canvas_state.flags.is_resize) {
+                let pt = canvas_state.pointers[e.pointerId].start_pos.cpy().mul(1 / scale).add(canvas_state.offset)
                 if (canvas_state.tool == "pencil") {
                     // СОЗДАЁМ НОВУЮ КРИВУЮ
-
                     let curve = new Curve
                     canvas_state.board.objects.length = canvas_state.curvesandimages_len
                     canvas_state.curvesandimages_len += 1
                     canvas_state.board.objects.push(curve)
 
-                    let pt = canvas_state.pointers[e.pointerId].start_pos.cpy().mul(1 / scale).add(canvas_state.offset)
                     curve.push(pt)
                 }else if (canvas_state.tool == "eraser") {
                     canvas_state.previous_screen_holst_pos = pt
