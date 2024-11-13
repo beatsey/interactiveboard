@@ -548,6 +548,12 @@ function init() {
             canvas_state.flags.shift = false
         }
     })
+
+    // ДЛЯ УБИРАНИЯ НАВИГАЦИИ
+    // Проверка, что на устройстве мобильный браузер
+    if (window.innerWidth <= 800 && window.innerHeight <= 600) {
+        window.scrollTo(0, 1);
+    }
 }
 
 function undo() {
