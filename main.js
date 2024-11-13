@@ -256,6 +256,7 @@ let canvas_state = {
 let start_screen
 let start_offset
 let start_scale
+let start_wheel_scale
 
 let prev_board_width = undefined
 let prev_board_height = undefined
@@ -441,6 +442,7 @@ function init() {
                 // НАЧАЛО РЕСАЙЗА
                 start_offset = canvas_state.offset.cpy()
                 start_scale = scale
+                start_wheel_scale = wheel_scale
             }
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 50) {
@@ -451,6 +453,7 @@ function init() {
 
                 start_offset = canvas_state.offset.cpy()
                 start_scale = scale
+                start_wheel_scale = wheel_scale
                 canvas_state.flags.is_resize = true
             }
         }
@@ -787,6 +790,8 @@ function pointermove(e) {
                 let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
                 let scale_mult = Math.sqrt(len2_start/len2_now)
                 scale = start_scale
+                wheel_scale = start_wheel_scale
+                console.log(wheel_scale, scale_mult)
                 zoom(speed=scale_mult, position=center)
 
                 drawCurves(debug="two_finger_resize")
@@ -900,6 +905,7 @@ function pointermove(e) {
             let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
             let scale_mult = Math.sqrt(len2_start/len2_now)
             scale = start_scale
+            wheel_scale = start_wheel_scale
             zoom(speed=scale_mult, position=center)
 
             drawCurves(debug="two_finger_resize")
