@@ -475,7 +475,7 @@ function init() {
         }
     }, false)
 
-    addEventListener("pointermove", e => pointermove, false)
+    addEventListener("pointermove", pointermove, false)
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
         setCanvasWidthHeight()
