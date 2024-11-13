@@ -411,10 +411,11 @@ function init() {
 
     canvas.addEventListener("pointerdown", e => {
         canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
+        let cur_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
         canvas_state.pointers[e.pointerId] = { // ПОЗИЦИЯ ВРЕМЯ
             start_time: e.timeStamp,
-            start_pos: new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi)),
-            pos: undefined
+            start_pos: cur_pixel_pos,
+            pos: cur_pixel_pos
         }
 
         let ids = Object.keys(canvas_state.pointers)
@@ -784,7 +785,7 @@ function pointermove(e) {
 
                 let len2_start = Math.pow(p0.start_pos.x - p1.start_pos.x, 2) + Math.pow(p0.start_pos.y - p1.start_pos.y, 2)
                 let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
-                let scale_mult = Math.sqrt(len2_now/len2_start)
+                let scale_mult = Math.sqrt(len2_start/len2_now)
                 scale = start_scale
                 zoom(speed=scale_mult, position=center)
 
@@ -897,7 +898,7 @@ function pointermove(e) {
 
             let len2_start = Math.pow(p0.start_pos.x - p1.start_pos.x, 2) + Math.pow(p0.start_pos.y - p1.start_pos.y, 2)
             let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
-            let scale_mult = Math.sqrt(len2_now/len2_start)
+            let scale_mult = Math.sqrt(len2_start/len2_now)
             scale = start_scale
             zoom(speed=scale_mult, position=center)
 
