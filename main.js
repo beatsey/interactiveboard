@@ -410,11 +410,16 @@ function init() {
         delete canvas_state.pointers[e.pointerId]
 
         if (is_active_in_resize) {
-            // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе
+            // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе.
 
             for(const [id, pt] of Object.entries(canvas_state.pointers)) {
                 pt.start_pos = pt.pos
             }
+
+            // НАЧАЛО РЕСАЙЗА
+            start_offset = canvas_state.offset.cpy()
+            start_scale = scale
+            start_wheel_scale = wheel_scale
         }
     };
 
@@ -470,7 +475,7 @@ function init() {
         }
     }, false)
 
-    addEventListener("pointermove", e => {pointermove(e)}, false)
+    addEventListener("pointermove", e => pointermove, false)
     addEventListener("contextmenu", e => e.preventDefault(), false)
     addEventListener('resize', _ => {
         setCanvasWidthHeight()
