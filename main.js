@@ -893,11 +893,12 @@ function pointermove(e) {
             let center = new Vector2((p0.pos.x + p1.pos.x) / 2, (p0.pos.y + p1.pos.y) / 2)
             let start_center = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
 
-            canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
+            canvas_state.offset = start_center.sub(center).mul(1 / start_scale).add(start_offset)
 
             let len2_start = Math.pow(p0.start_pos.x - p1.start_pos.x, 2) + Math.pow(p0.start_pos.y - p1.start_pos.y, 2)
             let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
-            let scale_mult = Math.sqrt(len2_start/len2_now)
+            let scale_mult = Math.sqrt(len2_now/len2_start)
+            scale = start_scale
             zoom(speed=scale_mult, position=center)
 
             drawCurves(debug="two_finger_resize")
