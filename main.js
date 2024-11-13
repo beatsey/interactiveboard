@@ -865,9 +865,6 @@ function pointermove(e) {
             let scale_mult = Math.sqrt(len2_start/len2_now)
             scale = start_scale
             wheel_scale = start_wheel_scale
-
-            console.log('MULT!', scale_mult, len2_now, p0.pos.x, p0.pos.y, p1.pos.x, p1.pos.y)
-
             zoom(speed=scale_mult, position=center)
 
             drawCurves(debug="two_finger_resize")
