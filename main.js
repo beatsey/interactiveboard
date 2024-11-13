@@ -413,7 +413,9 @@ function init() {
             // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе.
 
             for(const [id, pt] of Object.entries(canvas_state.pointers)) {
-                pt.start_pos = pt.pos
+                console.log('before:', pt)
+                pt.start_pos = pt.pos.cpy()
+                console.log('after:',pt)
             }
 
             // НАЧАЛО РЕСАЙЗА
@@ -814,7 +816,10 @@ function pointermove(e) {
                 // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
                 let p0 = canvas_state.pointers[ids[0]]
 
-                canvas_state.offset = p0.start_pos.cpy().sub(p0.pos).mul(1 / scale).add(start_offset)
+                let diff = p0.start_pos.cpy().sub(p0.pos)
+                console.log(diff)
+
+                canvas_state.offset = diff.mul(1 / scale).add(start_offset)
                 drawCurves(debug="one_finger_resize")
             }
 
