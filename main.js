@@ -403,8 +403,19 @@ function init() {
     })
 
     let pointer_end_action = e => {
-        delete canvas_state.pointers[e.pointerId]
+        let ids = Object.keys(canvas_state.pointers)
         canvas_state.flags.right_click = e.buttons & 2 // ФЛАГ ПКМ
+
+        let is_active_in_resize = canvas_state.is_resize && (ids[0] == e.pointerId || ids[1] == e.pointerId)
+        delete canvas_state.pointers[e.pointerId]
+
+        if (is_active_in_resize) {
+            // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе
+
+            for(const [id, pt] of Object.entries(canvas_state.pointers)) {
+                pt.start_pos = pt.pos
+            }
+        }
     };
 
     addEventListener("pointercancel", pointer_end_action, false)
@@ -791,7 +802,6 @@ function pointermove(e) {
                 let scale_mult = Math.sqrt(len2_start/len2_now)
                 scale = start_scale
                 wheel_scale = start_wheel_scale
-                console.log(wheel_scale, scale_mult)
                 zoom(speed=scale_mult, position=center)
 
                 drawCurves(debug="two_finger_resize")
