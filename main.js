@@ -500,7 +500,7 @@ function init() {
 
         const current_browser_zoom = outerWidth/innerWidth
         if (scrollMoves.isMouse_scroll || e.ctrlKey || e.metaKey) {
-            let speed = Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30)
+            let speed = Math.exp(Math.max(Math.min(1.5 * e.deltaY * current_browser_zoom, 30), -30) * 0.008)
             zoom(speed=speed)
         } else {
             let pixels_delta_x = Math.round(e.deltaX * current_browser_zoom)
@@ -522,13 +522,13 @@ function init() {
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
-                    zoom(speed=-40, pointer_position=true) // zoom in
+                    zoom(speed=Math.exp(-40 * 0.008)) // zoom in
                     break
                 case 'Minus':
-                    zoom(speed=40, pointer_position=true) // zoom out
+                    zoom(speed=Math.exp(40 * 0.008)) // zoom out
                     break
                 case 'Digit0':
-                    zoom(speed=1000, pointer_position=true, reset_scale=true) // speed should be > 15 for sharp image coordinates
+                    zoom(speed=1000, reset_scale=true) // speed should be > 1.1 for sharp image coordinates
                     break
                 case 'KeyZ':
                     undo()
@@ -584,12 +584,12 @@ function redo() {
     drawCurves(debug="redo");
 }
 
-function zoom(speed, pointer_position=true, reset_scale=false) {
+function zoom(speed, position=undefined, reset_scale=false) {
     let whs = wheel_scale;
     if (reset_scale) {
         wheel_scale = 1;
     }else{
-        wheel_scale *= Math.exp(speed * 0.008)
+        wheel_scale *= speed
         // maximum scale down = 400%, maximum scale up = 500%
         // 4 = 400%, 0.2 = 1 / 500%
         wheel_scale = Math.max(Math.min(120, wheel_scale), 0.2)
@@ -598,16 +598,20 @@ function zoom(speed, pointer_position=true, reset_scale=false) {
     // if wheel_scale changed (i.e. we are not spamming ctrl + 0)
     if (wheel_scale !== whs) {
         let pixel_to_board = (wheel_scale - whs) / dpi
-        if (pointer_position) {
+        if (position !== undefined) {
+            canvas_state.offset.x -= position.x * pixel_to_board
+            canvas_state.offset.y -= position.y * pixel_to_board
+        }else{
             canvas_state.offset.x -= canvas_state.current_screen_pixel_pos.x * pixel_to_board
             canvas_state.offset.y -= canvas_state.current_screen_pixel_pos.y * pixel_to_board
-        }else{
-            canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
-            canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
+
+            // Center of screen
+            // canvas_state.offset.x -= can.width * 0.5 * pixel_to_board
+            // canvas_state.offset.y -= can.height * 0.5 * pixel_to_board
         }
 
         scale = dpi / wheel_scale
-        drawCurves(round_images=Math.abs(speed) > 15, debug="zoom")
+        drawCurves(round_images=Math.abs(speed) > 1.12, debug="zoom")
     }
 }
 
@@ -776,6 +780,12 @@ function pointermove(e) {
                 let start_center = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
 
                 canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
+
+                let len2_start = Math.pow(p0.start_pos.x - p1.start_pos.x, 2) + Math.pow(p0.start_pos.y - p1.start_pos.y, 2)
+                let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
+                let scale_mult = Math.sqrt(len2_now/len2_start)
+                zoom(speed=scale_mult, position=center)
+
                 drawCurves(debug="two_finger_resize")
             } else {
                 // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
@@ -875,7 +885,6 @@ function pointermove(e) {
     {
         if (canvas_state.is_resize) {
             // ПЕРЕСЧИТЫВАЕМ SCALE и OFFSET
-
             let p0 = canvas_state.pointers[ids[0]]
             let p1 = canvas_state.pointers[ids[1]]
 
@@ -883,6 +892,12 @@ function pointermove(e) {
             let start_center = new Vector2((p0.start_pos.x + p1.start_pos.x) / 2, (p0.start_pos.y + p1.start_pos.y) / 2)
 
             canvas_state.offset = start_center.sub(center).mul(1 / scale).add(start_offset)
+
+            let len2_start = Math.pow(p0.start_pos.x - p1.start_pos.x, 2) + Math.pow(p0.start_pos.y - p1.start_pos.y, 2)
+            let len2_now = Math.pow(p0.pos.x - p1.pos.x, 2) + Math.pow(p0.pos.y - p1.pos.y, 2)
+            let scale_mult = Math.sqrt(len2_now/len2_start)
+            zoom(speed=scale_mult, position=center)
+
             drawCurves(debug="two_finger_resize")
             return
         }
