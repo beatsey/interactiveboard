@@ -19,3 +19,117 @@ body{
     overflow:hidden;
     touch-action:none;
 }
+
+
+
+/* Вертикальная панель инструментов */
+.toolbar {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 6px;
+    gap: 8px;
+}
+
+/* Стили кнопок инструментов */
+.toolbar button {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 4px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+}
+
+.toolbar button:hover {
+    background-color: #f0f0f0;
+}
+
+/* Стили активной кнопки инструмента */
+.tool-btn.active {
+    border: 2px solid #0078FF;
+}
+
+/* Скрытый контейнер для ползунка */
+.brush-size {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 80px;
+    transform: translateY(-50%);
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+    padding: 8px;
+}
+
+/* Ползунок для выбора толщины кисти */
+.brush-size input[type="range"] {
+    width: 100px;
+}
+
+/* Стиль кнопки входа через Google */
+.login-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+
+
+    /* Скрываем стандартный внешний вид элемента */
+    .color-input {
+        -webkit-appearance: none;
+        appearance: none;
+        border: none;
+        background: none;
+        cursor: pointer;
+        width:48px;
+        height:48px;
+        position: relative;
+    }
+
+    /* Стили для "кнопки" */
+    .color-input::before {
+        content: '';
+        display: block;
+        width: 100%;
+        height: 100%;
+        background-color: #ffffff; /* Цвет кнопки */
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    /* Черный круг внутри кнопки */
+    .color-input::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 10px;
+        height: 10px;
+        background-color: black; /* Цвет круга */
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+    }

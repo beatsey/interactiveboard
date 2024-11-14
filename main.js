@@ -119,7 +119,6 @@ https://obfuscator.io/
     When eraser is used then we search for intersections only with figures that we have our eraser in their bounding boxes. OK
 
 * FUNCTIONAL:
-* TODO: when nothing is dragged no need to clear everything! just redraw the last curve
 * TODO: Add the ability to save the board state between the page refreshes in cookies
 * TODO: Add "save" button to download the entire cropped board as an image
 
@@ -926,12 +925,12 @@ function save_board_state() {
     a.click();
 }
 
-function color(obj) {
-    linecolor = obj.id
+function color(name) {
+    linecolor = name
     canvas_state.tool = "pencil"
 }
 
-function pickeraser(obj) {
+function pickeraser() {
     canvas_state.tool = "eraser"
 }
 
