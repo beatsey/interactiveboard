@@ -1,5 +1,5 @@
 {
-  "name": "My Web App",
+  "name": "InteractiveBoard",
   "short_name": "App",
   "description": "This is my awesome web app!",
   "start_url": "board.html",
