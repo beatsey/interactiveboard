@@ -928,13 +928,18 @@ function save_board_state() {
     a.click();
 }
 
-function color(name) {
-    canvas_state.linecolor = name
-    canvas_state.tool = "pencil"
+function pickTool(tool_name) {
+    canvas_state.tool = tool_name
+
+    document.getElementById('tool-eraser').classList.remove('active')
+    document.getElementById('tool-pencil').classList.remove('active')
+    document.getElementById('tool-'+tool_name).classList.add('active')
 }
 
-function pickeraser() {
-    canvas_state.tool = "eraser"
+function color(color_name) {
+    canvas_state.linecolor = color_name
+    document.getElementById('brushIndicator').style.backgroundColor = color_name
+    pickTool("pencil")
 }
 
 function erase() {
