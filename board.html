@@ -10,19 +10,6 @@
 </head>
 <body onload="init()">
     <canvas id="can"></canvas>
-    <div style="position:absolute;top:12%;right:3%;">Choose Color</div>
-    <div style="position:absolute;top:15%;right:5%;width:10px;height:10px;background:green;" onclick="color('green')"></div>
-    <div style="position:absolute;top:15%;right:6%;width:10px;height:10px;background:blue;" onclick="color('blue')"></div>
-    <div style="position:absolute;top:15%;right:7%;width:10px;height:10px;background:red;" onclick="color('red')"></div>
-    <div style="position:absolute;top:17%;right:5%;width:10px;height:10px;background:yellow;" onclick="color('yellow')"></div>
-    <div style="position:absolute;top:17%;right:6%;width:10px;height:10px;background:orange;" onclick="color('orange')"></div>
-    <div style="position:absolute;top:17%;right:7%;width:10px;height:10px;background:black;" onclick="color('black')"></div>
-    <script>
-        // Обновляем цвет круга при выборе цвета
-        function updateColor(input) {
-            document.querySelector('.color-input::after').style.backgroundColor = input.value;
-        }
-    </script>
     <div class="toolbar">
         <button class="tool-btn active" onclick="color('black')">
             <svg width="28" height="28" viewBox="0 0 24 24">
@@ -31,31 +18,16 @@
         </button>
 
         <button onclick="pickeraser(this)">Eraser</button>
-        <!-- <input type="color" value="#000000"> -->
-        <input type="color" id="colorPicker" style="display:none" onchange="color(this.value)">
+        <input type="color" id="colorPicker" style="display:none" onchange="document.getElementById('brushIndicator').style.backgroundColor = this.value; color(this.value)">
 
         <button class="tool-btn" id="brushSizeBtn" onclick="document.getElementById('colorPicker').click()">
             <span id="brushIndicator" style="display: inline-block; background-color: #000; border-radius: 50%; width: 12px; height: 12px;"></span>
         </button>
 
-        <button class="tool-btn" id="shapeTool">
-            <svg width="28" height="28" viewBox="0 0 24 24">
-                <path d="M3 3h18v2H3V3zm5 4h10v10H8V7zm-3 14h18v2H5v-2z"></path>
-            </svg>
-        </button>
+        <!-- <button>SHAPE</button> -->
 
-        <button class="tool-btn" id="undoTool">
-            <svg width="28" height="28" viewBox="0 0 24 24">
-                <path d="M12 5V1L4 9l8 8V11a6 6 0 0 1 6 6h2a8 8 0 0 0-8-8z"></path>
-            </svg>
-        </button>
-
-        <button class="tool-btn" id="redoTool">
-            <svg width="28" height="28" viewBox="0 0 24 24">
-                <path d="M12 5v4a8 8 0 0 1 8 8h-2a6 6 0 0 0-6-6v4l8-8z"></path>
-            </svg>
-        </button>
-
+        <button onclick="undo()">UNDO</button>
+        <button onclick="redo()">REDO</button>
         <button onclick="save()">Save</button>
         <button onclick="erase()">Clear</button>
         <button onclick="save_board_state()">Save JSON</button>

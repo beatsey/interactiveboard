@@ -54,7 +54,7 @@ class Vector2 {
 class Curve {
     constructor(color, width, points) {
         this.type = 'curve'
-        this.color = color || linecolor
+        this.color = color || canvas_state.linecolor
         this.width = width || canvas_state.lineWidth
         this.points = points || []
 
@@ -207,7 +207,7 @@ Ability to render pdf file on board.
 *
 * */
 
-let canvas, ctx, linecolor = "black";
+let canvas, ctx;
 
 // Данная переменная хранит все объекты доски
 let canvas_state = {
@@ -222,6 +222,7 @@ let canvas_state = {
 // offset is the top left corner of the canvas
     offset: new Vector2(0,0),
     lineWidth: 12,
+    linecolor: "black",
     tool: "pencil",
     flags: {
         redraw_frame: true,
@@ -784,7 +785,6 @@ function pointermove(e) {
         let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
         if(canvas_state.tool == "pencil") {
-            // Если это новая кривая, то добавляем её (первый клик левой кнопки мыши)
             let curve = canvas_state.board.objects[canvas_state.board.objects.length - 1]
 
             if (canvas_state.flags.shift) {
@@ -820,6 +820,9 @@ function pointermove(e) {
                 // Логично при рисовке убирать именно по углу треугольника, т.к. большой угол = круче парабола.
                 curve.push(pt)
             }
+
+            // UPDATE Curve color
+            curve.color = canvas_state.linecolor
         }
         else if(canvas_state.tool == "eraser")
         {
@@ -926,7 +929,7 @@ function save_board_state() {
 }
 
 function color(name) {
-    linecolor = name
+    canvas_state.linecolor = name
     canvas_state.tool = "pencil"
 }
 
