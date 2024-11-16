@@ -268,6 +268,8 @@ class ExtendedImage extends Image {
         this.src = src
     }
 
+    onload() {drawCurves(debug="image_loaded_internal")}
+
     toJSON() {
         return this.src
     }
