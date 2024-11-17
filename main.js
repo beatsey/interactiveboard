@@ -298,11 +298,11 @@ function setCanvasWidthHeight() {
 }
 
 function updateUndoRedoButtons() {
-    let undo_disabled = canvas_state.curvesandimages_len === 0
-    let redo_disabled = canvas_state.curvesandimages_len === canvas_state.board.objects.length
-
-    document.getElementById('undo').disabled = undo_disabled
-    document.getElementById('redo').disabled = redo_disabled
+//    let undo_disabled = canvas_state.curvesandimages_len === 0
+//    let redo_disabled = canvas_state.curvesandimages_len === canvas_state.board.objects.length
+//
+//    document.getElementById('undo').disabled = undo_disabled
+//    document.getElementById('redo').disabled = redo_disabled
 }
 
 function addNewImage(src, topleft, botright) {
