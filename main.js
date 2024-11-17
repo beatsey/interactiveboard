@@ -953,6 +953,7 @@ function pickTool(tool_name) {
 function color(color_name) {
     canvas_state.linecolor = color_name
     document.getElementById('brushIndicator').style.backgroundColor = color_name
+    document.getElementById('svg-pencil').setAttribute('fill', color_name)
     pickTool("pencil")
 }
 
