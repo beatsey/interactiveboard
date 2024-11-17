@@ -11,23 +11,23 @@
 <body onload="init()">
     <canvas id="can"></canvas>
     <div class="toolbar">
-        <button class="tool-btn" id="tool-pencil" onclick="pickTool('pencil')">
+        <button id="tool-pencil" onclick="pickTool('pencil')">
             <svg width="28" height="28" viewBox="0 0 24 24">
                 <path d="M3 17.25V21h3.75l11.02-11.02-3.75-3.75L3 17.25z"></path>
             </svg>
         </button>
-        <button class="tool-btn" onclick="pickTool('eraser')" id="tool-eraser">Eraser</button>
+        <button onclick="pickTool('eraser')" id="tool-eraser">Eraser</button>
         <input type="color" id="colorPicker" style="display:none" onclick="pickTool('pencil')" onchange="color(this.value)">
 
-        <button class="tool-btn" id="brushSizeBtn" onclick="document.getElementById('colorPicker').click()">
+        <button id="brushSizeBtn" onclick="document.getElementById('colorPicker').click()">
             <span id="brushIndicator" style="display: inline-block; background-color: #000; border-radius: 50%; width: 12px; height: 12px;"></span>
         </button>
         <!-- <button>SHAPE</button> -->
-        <button onclick="undo()">UNDO</button>
-        <button onclick="redo()">REDO</button>
-        <button onclick="save()">Save</button>
-        <button onclick="erase()">Clear</button>
-        <button onclick="save_board_state()">Save JSON</button>
+        <button id="undo" onclick="undo()" disabled>UNDO</button>
+        <button id="redo" onclick="redo()" disabled>REDO</button>
+        <button id="save" onclick="save()">Save</button>
+        <button id="clear" onclick="erase()">Clear</button>
+        <button id="json" onclick="save_board_state()">Save JSON</button>
     </div>
 </body>
 </html>

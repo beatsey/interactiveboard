@@ -1,7 +1,6 @@
 // noinspection JSBitwiseOperatorUsage
 
 // TODO: Изменить алгоритм ластика, чтобы можно было стирать точки.
-// TODO: Сохранять текущий scale (или wheel_scale), offset. Чтобы при перезагрузке страницы доска выглядела точно так же.
 // TODO: мб также сохранять и текущий рабочий инструмент?
 // TODO: Использовать localStorage
 // TODO: Использовать IndexedDB, хранить в бинарном виде что хранится
@@ -223,7 +222,7 @@ let canvas_state = {
     offset: new Vector2(0,0),
     lineWidth: 12,
     linecolor: "black",
-    tool: "pencil",
+    tool: "movement",
     flags: {
         redraw_frame: true,
         is_resize: false,
@@ -298,6 +297,13 @@ function setCanvasWidthHeight() {
     prev_board_height = board_height
 }
 
+function updateUndoRedoButtons() {
+    let undo_disabled = canvas_state.curvesandimages_len === 0
+    let redo_disabled = canvas_state.curvesandimages_len === canvas_state.board.objects.length
+
+    document.getElementById('undo').disabled = undo_disabled
+    document.getElementById('redo').disabled = redo_disabled
+}
 
 function addNewImage(src, topleft, botright) {
     let cursor_pixel_pos
@@ -305,6 +311,7 @@ function addNewImage(src, topleft, botright) {
 
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len += 1
+
 
     if(src in canvas_state.board.src_index) {
         index = canvas_state.board.src_index[src]
@@ -363,6 +370,7 @@ function addNewImage(src, topleft, botright) {
             });
         }
     }
+    updateUndoRedoButtons()
 }
 
 function init() {
@@ -384,6 +392,7 @@ function init() {
         }
         canvas_state.board.objects = json_file_data.objects
         canvas_state.curvesandimages_len = canvas_state.board.objects.length
+        updateUndoRedoButtons()
         console.log("Contents are loaded!")
         drawCurves(debug="json_loaded")
     })
@@ -437,6 +446,7 @@ function init() {
                     canvas_state.board.objects.length = canvas_state.curvesandimages_len
                     canvas_state.curvesandimages_len += 1
                     canvas_state.board.objects.push(curve)
+                    updateUndoRedoButtons()
 
                     curve.push(pt)
                 }else if (canvas_state.tool == "eraser") {
@@ -574,11 +584,12 @@ function undo() {
         canvas_state.board.objects.splice(undo_action.index, 0, ...undo_action.array)
         canvas_state.curvesandimages_len += undo_action.array.length - 1
     }
-    else{
+    else
+    {
         // Reduce length only for NOT deleted
         canvas_state.curvesandimages_len -= 1
     }
-
+    updateUndoRedoButtons()
     drawCurves(debug="undo")
 }
 
@@ -593,7 +604,7 @@ function redo() {
         // Increase object length only for NOT deleted
         canvas_state.curvesandimages_len += 1
     }
-
+    updateUndoRedoButtons()
     drawCurves(debug="redo");
 }
 
@@ -856,6 +867,7 @@ function pointermove(e) {
                     canvas_state.board.objects.length = canvas_state.curvesandimages_len
                     let array = canvas_state.board.objects.splice(i, 1)
                     canvas_state.board.objects.push({"type": "deleted", "index": i, "array": array})
+                    updateUndoRedoButtons()
                 }
             }
             // Remember last pt for eraser
@@ -953,6 +965,7 @@ function erase() {
     let arr = canvas_state.board.objects
     canvas_state.board.objects = [{"type": "deleted", "index": 0, "array": arr}]
     canvas_state.curvesandimages_len = 1
+    updateUndoRedoButtons()
 }
 
 function drawCrossScreenCenter() {

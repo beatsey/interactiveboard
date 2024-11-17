@@ -59,7 +59,7 @@ body{
 }
 
 /* Стили активной кнопки инструмента */
-.tool-btn.active {
+.toolbar button.active {
     border: 2px solid #0078FF;
 }
 
@@ -80,24 +80,6 @@ body{
 .brush-size input[type="range"] {
     width: 100px;
 }
-
-/* Стиль кнопки входа через Google */
-.login-btn {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background-color: #fff;
-    border: 1px solid #ccc;
-    padding: 8px 16px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-
 
     /* Скрываем стандартный внешний вид элемента */
     .color-input {
