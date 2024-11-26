@@ -479,6 +479,7 @@ function init() {
                             canvas_state.board.objects.length = canvas_state.curvesandimages_len
                         }else{
                             break
+
                         }
                     }
                 }
