@@ -667,6 +667,27 @@ function drawCurves(round_images=true) {
     }
 }
 
+function drawBackgroundNet() {
+    for (let x=100;x<2000;x+=100){
+        ctx.beginPath()
+        ctx.moveTo(x, 0)
+        ctx.lineTo(x, 0 + 1000)
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 1 * scale
+        ctx.stroke()
+        ctx.closePath()
+    }
+    for (let y=100;y<2000;y+=100){
+        ctx.beginPath()
+        ctx.moveTo(0, y)
+        ctx.lineTo(2000, y)
+        ctx.strokeStyle = "black"
+        ctx.lineWidth = 1 * scale
+        ctx.stroke()
+        ctx.closePath()
+    }
+}
+
 // Функция отвечает за отрисовку кадра
 function drawCurves_inner() {
     let now = performance.now()
@@ -681,6 +702,8 @@ function drawCurves_inner() {
     // clear everything
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+
+    drawBackgroundNet()
 
     // Необходимо для чётких картинок и линий.
     // const pixel_offset_x = Math.floor(canvas_state.offset.x * scale)
