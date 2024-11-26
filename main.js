@@ -460,7 +460,7 @@ function init() {
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 200) {
 
-                // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО
+                // ОТМЕНА НАРИСОВАННОГО ЗА 200 МС
                 if (canvas_state.tool == "pencil") {
                     canvas_state.curvesandimages_len -= 1
                     canvas_state.board.objects.length -= 1
@@ -469,13 +469,17 @@ function init() {
                     // canvas_state.board.objects.length = canvas_state.curvesandimages_len
                 }
 
-                // TODO: ОТМЕНА ВСЕГО СТЕРТОГО
-                if (canvas_state.tool == "eraser" && canvas_state.board.objects.length > 0) {
-                    let last_object = canvas_state.board.objects[canvas_state.board.objects.length - 1]
-                    if (last_object.type == "deleted" && last_object["pointer_id"] == ids[0]) {
-                        // Отменяем удаление без сохранения в историю
-                        undo()
-                        canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                // ОТМЕНА ВСЕГО СТЕРТОГО ЗА 200 МС
+                if (canvas_state.tool == "eraser") {
+                    while (canvas_state.board.objects.length > 0){
+                        let last_object = canvas_state.board.objects[canvas_state.board.objects.length - 1]
+                        if (last_object.type == "deleted" && last_object["pointer_id"] == ids[0]) {
+                            // Отменяем удаление без сохранения в историю
+                            undo()
+                            canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                        }else{
+                            continue
+                        }
                     }
                 }
 
