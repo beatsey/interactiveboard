@@ -298,11 +298,11 @@ function setCanvasWidthHeight() {
 }
 
 function updateUndoRedoButtons() {
-//    let undo_disabled = canvas_state.curvesandimages_len === 0
-//    let redo_disabled = canvas_state.curvesandimages_len === canvas_state.board.objects.length
-//
-//    document.getElementById('undo').disabled = undo_disabled
-//    document.getElementById('redo').disabled = redo_disabled
+    let undo_disabled = canvas_state.curvesandimages_len === 0
+    let redo_disabled = canvas_state.curvesandimages_len === canvas_state.board.objects.length
+
+    document.getElementById('undo').disabled = undo_disabled
+    document.getElementById('redo').disabled = redo_disabled
 }
 
 function addNewImage(src, topleft, botright) {
@@ -460,7 +460,15 @@ function init() {
             }
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 200) {
-                // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО / СТЕРТОГО
+
+                // TODO: ОТМЕНА ВСЕГО НАРИСОВАННОГО
+                if (canvas_state.tool == "pencil") {
+                    canvas_state.curvesandimages_len -= 1
+                    canvas_state.board.objects.length -= 1
+                }
+
+                // TODO: ОТМЕНА ВСЕГО СТЕРТОГО
+                // if (canvas_state.tool == "eraser") {}
 
                 canvas_state.flags.is_resize = true
             }
