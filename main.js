@@ -478,7 +478,7 @@ function init() {
                             undo()
                             canvas_state.board.objects.length = canvas_state.curvesandimages_len
                         }else{
-                            continue
+                            break
                         }
                     }
                 }
@@ -677,7 +677,7 @@ function drawBackgroundNet() {
         ctx.stroke()
         ctx.closePath()
     }
-    for (let y=100;y<2000;y+=100){
+    for (let y=100;y<2000;y+=100) {
         ctx.beginPath()
         ctx.moveTo(0, y)
         ctx.lineTo(2000, y)
