@@ -477,6 +477,7 @@ function init() {
                             // Отменяем удаление без сохранения в историю
                             undo()
                             canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                            updateUndoRedoButtons()
                         }else{
                             break
 
@@ -557,7 +558,7 @@ function init() {
     }, false)
 
     addEventListener('keydown', e => {
-//        console.log(e)
+        console.log(e)
         if (!canvas_state.flags.spacebar && e.key === " ") {
             canvas_state.flags.spacebar = true
         }
@@ -567,9 +568,11 @@ function init() {
         else if ((e.ctrlKey || e.metaKey) && !e.shiftKey) {
             switch(e.code) {
                 case 'Equal':
+                case 'NumpadAdd':
                     zoom(speed=Math.exp(-40 * 0.008), position=canvas_state.current_screen_pixel_pos) // zoom in
                     break
                 case 'Minus':
+                case 'NumpadSubtract':
                     zoom(speed=Math.exp(40 * 0.008), position=canvas_state.current_screen_pixel_pos) // zoom out
                     break
                 case 'Digit0':
