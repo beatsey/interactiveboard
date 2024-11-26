@@ -56,6 +56,7 @@ class Curve {
         this.color = color || canvas_state.linecolor
         this.width = width || canvas_state.lineWidth
         this.points = points || []
+        // this.initial_pointer_id
 
         // Bounding box
         if (this.points.length !== 0) {
@@ -214,12 +215,10 @@ let canvas_state = {
     board:{
         src_index:{},
         index_images:[],
-        objects:[]
+        objects:[] // Объекты, отображаемые на доске
     },
     curvesandimages_len: 0,
-// offset of the current canvas position from (0,0)
-// offset is the top left corner of the canvas
-    offset: new Vector2(0,0),
+    offset: new Vector2(0,0), // offset is the top left corner of the canvas
     lineWidth: 12,
     linecolor: "black",
     tool: "movement",
@@ -229,8 +228,7 @@ let canvas_state = {
         round_images: true, // Флаг округления координат image в drawCurves (для четкости)
         spacebar: false,
         right_click: false,
-        // Variable indicates whether left or right shift is pressed to make a forizontal
-        shift: false
+        shift: false // Variable indicates whether left or right shift is pressed to make an angled line.
     },
     pointers: {},
     // current position on the screen in pixels (without the offset)
@@ -443,6 +441,7 @@ function init() {
                 if (canvas_state.tool == "pencil") {
                     // СОЗДАЁМ НОВУЮ КРИВУЮ
                     let curve = new Curve
+                    // curve.pointer_id = ids[0] // Запомнили pointer_id при создании (нужно для отмены)
                     canvas_state.board.objects.length = canvas_state.curvesandimages_len
                     canvas_state.curvesandimages_len += 1
                     canvas_state.board.objects.push(curve)
@@ -465,10 +464,20 @@ function init() {
                 if (canvas_state.tool == "pencil") {
                     canvas_state.curvesandimages_len -= 1
                     canvas_state.board.objects.length -= 1
+                    // Можно также и таким способом:
+                    // undo()
+                    // canvas_state.board.objects.length = canvas_state.curvesandimages_len
                 }
 
                 // TODO: ОТМЕНА ВСЕГО СТЕРТОГО
-                // if (canvas_state.tool == "eraser") {}
+                if (canvas_state.tool == "eraser" && canvas_state.board.objects.length > 0) {
+                    let last_object = canvas_state.board.objects[canvas_state.board.objects.length - 1]
+                    if (last_object.type == "deleted" && last_object["pointer_id"] == ids[0]) {
+                        // Отменяем удаление без сохранения в историю
+                        undo()
+                        canvas_state.board.objects.length = canvas_state.curvesandimages_len
+                    }
+                }
 
                 canvas_state.flags.is_resize = true
             }
@@ -874,7 +883,12 @@ function pointermove(e) {
                 if (is_intersect) { // Нашли пересечение с кривой, удаляем
                     canvas_state.board.objects.length = canvas_state.curvesandimages_len
                     let array = canvas_state.board.objects.splice(i, 1)
-                    canvas_state.board.objects.push({"type": "deleted", "index": i, "array": array})
+                    canvas_state.board.objects.push({
+                        "type": "deleted",
+                        "index": i,
+                        "array": array,
+                        "pointer_id": e.pointerId // Запомнили для возможной отмены при дабл клике
+                    })
                     updateUndoRedoButtons()
                 }
             }
