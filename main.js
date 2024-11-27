@@ -238,7 +238,7 @@ let canvas_state = {
 
 // Variables for canvas_state.flags.spacebar (or right click) dragging
 let start_screen
-let start_offset
+let start_offset = undefined
 let start_scale
 let start_wheel_scale
 
@@ -553,6 +553,11 @@ function init() {
             let pixels_delta_y = Math.round(e.deltaY * current_browser_zoom)
             canvas_state.offset.x += 1.2 * pixels_delta_x / scale
             canvas_state.offset.y += 1.2 * pixels_delta_y / scale
+
+            if (start_offset != undefined) {
+                start_offset.x += 1.2 * pixels_delta_x / scale
+                start_offset.y += 1.2 * pixels_delta_y / scale
+            }
             drawCurves(debug="wheel")
         }
     }, false)
@@ -672,19 +677,37 @@ function drawCurves(round_images=true) {
 }
 
 function drawBackgroundNet() {
-    for (let x=100;x<2000;x+=100){
+    const pixel_offset_x = canvas_state.offset.x * scale
+    const pixel_offset_y = canvas_state.offset.y * scale
+
+    // x * scale - pixel_offset_x >= 0
+    // x * scale - pixel_offset_x < canvas.width
+    //
+    // x >= pixel_offset_x / scale = canvas_state.offset.x
+    // x * scale < canvas.width + pixel_offset_x
+    //
+    // x >= canvas_state.offset.x
+    // x < canvas.width / scale + canvas_state.offset.x
+
+    let cellsize = 100
+
+    let start_x_rounded = -canvas_state.offset.x % cellsize
+    let start_y_rounded = -canvas_state.offset.y % cellsize
+
+    for (let x=start_x_rounded*scale;x<canvas.width;x+=cellsize*scale) {
         ctx.beginPath()
-        ctx.moveTo(x, 0)
-        ctx.lineTo(x, 0 + 1000)
+        ctx.moveTo(x, -1)
+        ctx.lineTo(x, canvas.height+1)
         ctx.strokeStyle = "black"
         ctx.lineWidth = 1 * scale
         ctx.stroke()
         ctx.closePath()
     }
-    for (let y=100;y<2000;y+=100) {
+
+    for (let y=start_y_rounded*scale;y<canvas.height;y+=cellsize*scale) {
         ctx.beginPath()
         ctx.moveTo(0, y)
-        ctx.lineTo(2000, y)
+        ctx.lineTo(canvas.width+1, y)
         ctx.strokeStyle = "black"
         ctx.lineWidth = 1 * scale
         ctx.stroke()
@@ -734,7 +757,6 @@ function drawCurves_inner() {
 
         if(elem.type === 'curve') {
             //ctx.setTransform(1, 0, 0, 1, -pixel_offset_x, -pixel_offset_y)
-
             // !!!!!!!!!!!!!!TODO: попробовать плавный рескейл, сделать анимацию! Дробить покадрово!
 
             let pt_x = elem.points[0].x * scale - pixel_offset_x

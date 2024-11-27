@@ -21,9 +21,6 @@ body{
     height: 100vh;
 }
 
-
-
-/* Вертикальная панель инструментов */
 .toolbar {
     position: absolute;
     left: 50%;
