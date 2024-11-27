@@ -954,7 +954,11 @@ function pointermove(e) {
         } else {
             // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
             let p0 = canvas_state.pointers[ids[0]]
-            canvas_state.offset = p0.start_pos.cpy().sub(p0.pos).mul(1 / scale).add(start_offset)
+            canvas_state.offset = p0.start_pos.cpy().sub(p0.pos).mul(1 / start_scale).add(start_offset)
+            coef = wheel_scale/start_wheel_scale
+            scale = start_scale
+            wheel_scale = start_wheel_scale
+            zoom(speed=coef, position = p0.pos)
             drawCurves(debug="one_finger_resize")
         }
     }
