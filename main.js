@@ -676,10 +676,9 @@ function drawCurves(round_images=true) {
     }
 }
 
-function drawBackgroundNet() {
-    const pixel_offset_x = canvas_state.offset.x * scale
-    const pixel_offset_y = canvas_state.offset.y * scale
+let cellsize = 128
 
+function drawBackgroundNet() {
     // x * scale - pixel_offset_x >= 0
     // x * scale - pixel_offset_x < canvas.width
     //
@@ -689,7 +688,7 @@ function drawBackgroundNet() {
     // x >= canvas_state.offset.x
     // x < canvas.width / scale + canvas_state.offset.x
 
-    let cellsize = 100
+    let cellsize = 128 * Math.pow(2,Math.round(Math.log(1/scale) / Math.log(2)))
 
     let start_x_rounded = -canvas_state.offset.x % cellsize
     let start_y_rounded = -canvas_state.offset.y % cellsize
