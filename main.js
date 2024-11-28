@@ -411,12 +411,15 @@ function init() {
 
 
         if (is_active_in_resize) {
+            console.log('end!')
 
             // Если подняли последний палец, то делаем плавную анимацию
             if (ids.length == 1) {
                 let pixelpos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
-                console.log('smooth active!',e.clientX, e.clientY, e.timeStamp)
+                one_finger_pos_diff = pixelpos.sub(pointer.start_pos).mul(1 / scale / (e.timeStamp - pointer.start_time))
                 canvas_state.flags.smooth_animation_scroll_active = true
+                console.log('active!')
+                drawCurves()
             }
 
             // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе.
@@ -470,6 +473,7 @@ function init() {
                 start_scale = scale
                 start_wheel_scale = wheel_scale
             }
+            canvas_state.flags.smooth_animation_scroll_active = false
             canvas_state.current_screen_pixel_pos = cur_pixel_pos
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 200) {
@@ -508,6 +512,7 @@ function init() {
                 start_scale = scale
                 start_wheel_scale = wheel_scale
             }
+            canvas_state.flags.smooth_animation_scroll_active = false
         }
 
         //pointermove(e)
@@ -760,17 +765,17 @@ function calculate_smooth_movement(timeStamp) {
     // TODO: Считаем продолжение скролла для плавности!
     // Нужно знать время остановки анимации (когда подняли пальчик), от него считаем текущую позицию.
     if (canvas_state.flags.smooth_animation_scroll_active) {
-        const len2 = Math.pow(one_finger_pos_diff.x, 2) + Math.pow(one_finger_pos_diff.y, 2);
-        console.log(len2)
-        if (len2 < 0.01) {
+        const current_velocity = one_finger_pos_diff.cpy().mul(Math.exp(-(timeStamp - one_finger_pos_timeStamp)/400)*8)
+        const len2 = Math.pow(current_velocity.x, 2) + Math.pow(current_velocity.y, 2);
+        console.log('smooth, speed=',len2)
+        if (len2 < 1) {
             console.log('STOP!')
             canvas_state.flags.smooth_animation_scroll_active = false
             return
         }
         // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
         // TODO: Подцепить сюда время, а не количество кадров!!
-        canvas_state.offset.add(one_finger_pos_diff.cpy().mul(-10))
-        one_finger_pos_diff.mul(0.98)
+        canvas_state.offset.sub(current_velocity)
 
         // Запрашиваем ещё один фрейм, чтобы анимация была
         canvas_state.flags.redraw_frame = true
