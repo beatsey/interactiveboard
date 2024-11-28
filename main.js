@@ -563,7 +563,7 @@ function init() {
     }, false)
 
     addEventListener('keydown', e => {
-        console.log(e)
+        //console.log(e)
         if (!canvas_state.flags.spacebar && e.key === " ") {
             canvas_state.flags.spacebar = true
         }
@@ -686,26 +686,24 @@ function drawBackgroundNet() {
     // x >= canvas_state.offset.x
     // x < canvas.width / scale + canvas_state.offset.x
 
-    let state = Math.log(wheel_scale) / Math.LN2 // * 0.5
-    let animation_state = state - Math.floor(state)
+    const state = Math.log(wheel_scale) / Math.LN2 // * 0.5
+    const animation_state = state - Math.floor(state)
 
-    let cellsize = 64 * Math.pow(2,Math.floor(state))
-    let big_cellsize = cellsize * 2
-    console.log(wheel_scale, state, cellsize)
+    const cellsize = 64 * Math.pow(2,Math.floor(state))
+    const big_cellsize = cellsize * 2
 
-    let c_offset_x = -canvas_state.offset.x - Math.floor(-canvas_state.offset.x / big_cellsize) * big_cellsize
-    let c_offset_y = -canvas_state.offset.y - Math.floor(-canvas_state.offset.y / big_cellsize) * big_cellsize
+    const c_offset_x = -canvas_state.offset.x - Math.floor(-canvas_state.offset.x / big_cellsize) * big_cellsize
+    const c_offset_y = -canvas_state.offset.y - Math.floor(-canvas_state.offset.y / big_cellsize) * big_cellsize
 
-    let big_opacity = 0.05
+    const big_opacity = 0.05
 
+    ctx.lineWidth = 1
+    ctx.strokeStyle = 'rgba(0, 0, 0, ' + big_opacity + ")"
     // Big cells
-    //for (let x=c_offset_x * scale,i=0;x<canvas.width;x+=big_cellsize*scale,i+=1) {
     for (let x=c_offset_x * scale,i=0;x<canvas.width;x+=big_cellsize*scale,i+=1) {
         ctx.beginPath()
         ctx.moveTo(x, -1)
         ctx.lineTo(x, canvas.height+1)
-        ctx.strokeStyle = 'rgba(0, 0, 0, ' + big_opacity + ")"
-        ctx.lineWidth = 1
         ctx.stroke()
         ctx.closePath()
     }
@@ -714,23 +712,20 @@ function drawBackgroundNet() {
         ctx.beginPath()
         ctx.moveTo(0, y)
         ctx.lineTo(canvas.width+1, y)
-        ctx.strokeStyle = 'rgba(0, 0, 0, ' + big_opacity + ")"
-        ctx.lineWidth = 1
         ctx.stroke()
         ctx.closePath()
     }
 
     // small cells
-    let c_offset_small_x = -canvas_state.offset.x - cellsize - Math.floor((-canvas_state.offset.x - cellsize) / big_cellsize) * big_cellsize
-    let c_offset_small_y = -canvas_state.offset.y - cellsize - Math.floor((-canvas_state.offset.y - cellsize) / big_cellsize) * big_cellsize
-    let small_opacity = (1 - animation_state) * big_opacity
+    const c_offset_small_x = -canvas_state.offset.x - cellsize - Math.floor(-canvas_state.offset.x / big_cellsize - 0.5) * big_cellsize
+    const c_offset_small_y = -canvas_state.offset.y - cellsize - Math.floor(-canvas_state.offset.y / big_cellsize - 0.5) * big_cellsize
+    const small_opacity = (1 - animation_state) * big_opacity
+    ctx.strokeStyle = 'rgba(0, 0, 0, ' + small_opacity + ")"
 
     for (let x=c_offset_small_x * scale,i=0;x<canvas.width;x+=big_cellsize*scale,i+=1) {
         ctx.beginPath()
         ctx.moveTo(x, -1)
         ctx.lineTo(x, canvas.height+1)
-        ctx.strokeStyle = 'rgba(0, 0, 0, ' + small_opacity + ")"
-        ctx.lineWidth = 1
         ctx.stroke()
         ctx.closePath()
     }
@@ -739,9 +734,6 @@ function drawBackgroundNet() {
         ctx.beginPath()
         ctx.moveTo(0, y)
         ctx.lineTo(canvas.width+1, y)
-        ctx.strokeStyle = 'rgba(0, 0, 0, ' + small_opacity + ")"
-        ctx.lineWidth = 1
-        ctx.lineOpacity = 0.2
         ctx.stroke()
         ctx.closePath()
     }
