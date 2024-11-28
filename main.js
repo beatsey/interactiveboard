@@ -310,7 +310,6 @@ function addNewImage(src, topleft, botright) {
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
     canvas_state.curvesandimages_len += 1
 
-
     if(src in canvas_state.board.src_index) {
         index = canvas_state.board.src_index[src]
         let img = canvas_state.board.index_images[index]
@@ -458,6 +457,7 @@ function init() {
                 start_scale = scale
                 start_wheel_scale = wheel_scale
             }
+            canvas_state.current_screen_pixel_pos = cur_pixel_pos
         } else if (e.pointerId == ids[1]) {
             if (!canvas_state.flags.is_resize && e.timeStamp - canvas_state.pointers[ids[0]].start_time < 200) {
 
@@ -498,7 +498,7 @@ function init() {
             }
         }
 
-        pointermove(e)
+        //pointermove(e)
     }, false)
 
     addEventListener("pointermove", pointermove, false)
@@ -875,21 +875,20 @@ function pointermove(e) {
     // ids - список текущих указателей с касанием (ЛКМ или тач экрана смартфона)
     let ids = Object.keys(canvas_state.pointers)
 
+    let pixelpos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
     // Позиция указателя в пикселях
     if (e.pointerId in canvas_state.pointers)
-        canvas_state.pointers[e.pointerId].pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+        canvas_state.pointers[e.pointerId].pos = pixelpos
 
     // Секция нужна для запоминания текущего положения курсора относительно которого будем делать ресайз колёсиком
     if (ids.length == 0 || ids[0] == e.pointerId)
-        canvas_state.current_screen_pixel_pos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+        canvas_state.current_screen_pixel_pos = pixelpos
 
     if(ids.length == 0 || ids.length == 1 && e.pointerId != ids[0] || ids.length >= 2 && e.pointerId != ids[0] && e.pointerId != ids[1]) return;
 
     // РИСУЕМ КАРАНДАШОМ ИЛИ СТИРАЕМ
     if (e.pointerId == ids[0] && !canvas_state.flags.is_resize)
     {
-        // TODO: УЧИТЫВАТЬ 50 МС, ВИРТУАЛЬНЫЕ ИЗМЕНЕНИЯ, НЕ ОТОБРАЖАТЬ!
-
         let pt = canvas_state.pointers[e.pointerId].pos.cpy().mul(1 / scale).add(canvas_state.offset)
 
         if(canvas_state.tool == "pencil") {
