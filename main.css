@@ -7,6 +7,7 @@
     left:0;
     right:0;
     image-rendering: pixelated;
+    background-color: #f2f2f2;
 }
 .btn{
     position:absolute;
@@ -18,7 +19,7 @@ body{
     margin:0;
     overflow:hidden;
     touch-action:none;
-    height: 100vh;
+    //height: 100vh;
 }
 
 .toolbar {
