@@ -1068,9 +1068,10 @@ function color(color_name) {
     pickTool("pencil")
 }
 
-function erase() {
+function clear_board() {
     ctx.setTransform(1,0,0,1,0,0)
     ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+    drawBackgroundNet()
 
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
 
