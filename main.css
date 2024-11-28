@@ -19,7 +19,6 @@ body{
     margin:0;
     overflow:hidden;
     touch-action:none;
-    //height: 100vh;
 }
 
 .toolbar {
