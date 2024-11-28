@@ -373,6 +373,7 @@ function addNewImage(src, topleft, botright) {
 
 function init() {
     setCanvasWidthHeight()
+    drawBackgroundNet()
 
     fetch('./state.json')
     .then(response => {
@@ -677,6 +678,10 @@ function drawCurves(round_images=true) {
 }
 
 function drawBackgroundNet() {
+    // clear everything
+    ctx.setTransform(1,0,0,1,0,0)
+    ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
+
     // x * scale - pixel_offset_x >= 0
     // x * scale - pixel_offset_x < canvas.width
     //
@@ -749,10 +754,6 @@ function drawCurves_inner() {
     counter += 1
 
     prev = now
-
-    // clear everything
-    ctx.setTransform(1,0,0,1,0,0)
-    ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
 
     drawBackgroundNet()
 
@@ -1061,8 +1062,6 @@ function color(color_name) {
 }
 
 function clear_board() {
-    ctx.setTransform(1,0,0,1,0,0)
-    ctx.clearRect(-1, -1, canvas.width + 1, canvas.height + 1)
     drawBackgroundNet()
 
     canvas_state.board.objects.length = canvas_state.curvesandimages_len
