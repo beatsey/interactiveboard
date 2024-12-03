@@ -409,18 +409,21 @@ function init() {
         const is_active_in_resize = canvas_state.flags.is_resize && (ids[0] == e.pointerId || ids[1] == e.pointerId)
         delete canvas_state.pointers[e.pointerId]
 
-
         if (is_active_in_resize) {
-            console.log('end!')
-
             // Если подняли последний палец, то делаем плавную анимацию
-            if (ids.length == 1) {
-                let pixelpos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
-                one_finger_pos_diff = pixelpos.sub(pointer.start_pos).mul(1 / scale / (e.timeStamp - pointer.start_time))
-                canvas_state.flags.smooth_animation_scroll_active = true
-                console.log('active!')
-                drawCurves()
-            }
+            // TODO: сделать плавную анимацию :(
+//            if (ids.length == 1 && !canvas_state.flags.smooth_animation_scroll_active) {
+//                let pixelpos = new Vector2(Math.round(e.clientX * dpi), Math.round(e.clientY * dpi))
+//                // РАЗНИЦА В ПИКСЕЛЯХ!!!!
+
+//                start_offset = canvas_state.offset.cpy()
+//                start_scale = scale
+//                start_wheel_scale = wheel_scale
+//
+//                one_finger_pos_diff = pixelpos.sub(pointer.start_pos).mul(1 / scale / (e.timeStamp - pointer.start_time))
+//                canvas_state.flags.smooth_animation_scroll_active = true
+//                drawCurves()
+//            }
 
             // Имитируем нажатие прямо сейчас в случае, если поднимается палец, который участвовал в ресайзе.
             for(const [id, pt] of Object.entries(canvas_state.pointers)) {
@@ -515,7 +518,7 @@ function init() {
             canvas_state.flags.smooth_animation_scroll_active = false
         }
 
-        //pointermove(e)
+        pointermove(e)
     }, false)
 
     addEventListener("pointermove", pointermove, false)
@@ -765,9 +768,10 @@ function calculate_smooth_movement(timeStamp) {
     // TODO: Считаем продолжение скролла для плавности!
     // Нужно знать время остановки анимации (когда подняли пальчик), от него считаем текущую позицию.
     if (canvas_state.flags.smooth_animation_scroll_active) {
+        //const current_velocity = one_finger_pos_diff.cpy().mul(Math.exp(-(timeStamp - one_finger_pos_timeStamp)/400)*8)
+
         const current_velocity = one_finger_pos_diff.cpy().mul(Math.exp(-(timeStamp - one_finger_pos_timeStamp)/400)*8)
         const len2 = Math.pow(current_velocity.x, 2) + Math.pow(current_velocity.y, 2);
-        console.log('smooth, speed=',len2)
         if (len2 < 1) {
             console.log('STOP!')
             canvas_state.flags.smooth_animation_scroll_active = false
@@ -775,7 +779,8 @@ function calculate_smooth_movement(timeStamp) {
         }
         // ПЕРЕСЧИТЫВАЕМ ТОЛЬКО OFFSET
         // TODO: Подцепить сюда время, а не количество кадров!!
-        canvas_state.offset.sub(current_velocity)
+        canvas_state.offset = one_finger_pos_diff.cpy().mul(Math.exp(-(timeStamp - one_finger_pos_timeStamp))*8).add(start_offset)
+        // canvas_state.offset = start_offset.cpy().sub(current_velocity)
 
         // Запрашиваем ещё один фрейм, чтобы анимация была
         canvas_state.flags.redraw_frame = true
@@ -788,7 +793,7 @@ function drawCurves_inner() {
     let frame_time_millis = performance.now()
 
     // Считаем продолжение скролла для плавности!
-    calculate_smooth_movement(frame_time_millis)
+    // calculate_smooth_movement(frame_time_millis)
 
     drawBackgroundNet()
 
@@ -973,15 +978,37 @@ function pointermove(e) {
                         let figure = canvas_state.board.objects[i]
                         if(figure.type != "curve") continue
 
+                        const added_width = figure.width * 0.5
                         if (
-                            Math.min(pt.x,canvas_state.previous_screen_holst_pos.x) > figure.botright.x ||
-                            Math.max(pt.x,canvas_state.previous_screen_holst_pos.x) < figure.topleft.x ||
-                            Math.max(pt.y,canvas_state.previous_screen_holst_pos.y) < figure.topleft.y ||
-                            Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y
+                            Math.min(pt.x,canvas_state.previous_screen_holst_pos.x) > figure.botright.x + added_width ||
+                            Math.max(pt.x,canvas_state.previous_screen_holst_pos.x) < figure.topleft.x - added_width ||
+                            Math.max(pt.y,canvas_state.previous_screen_holst_pos.y) < figure.topleft.y - added_width ||
+                            Math.min(pt.y,canvas_state.previous_screen_holst_pos.y) > figure.botright.y + added_width
                         ) continue
 
                         let pts = canvas_state.board.objects[i].points
                         let is_intersect = false
+
+                        if (pts.length == 1) {
+//                            // Расстояние от точки до прямой ластика <= added_width
+//                            const len_to_pt = Math.sqrt(Math.pow(pts[0].x - pt.x, 2) + Math.pow(pts[0].y - pt.y, 2))
+//                            //is_intersect = len_to_pt <= added_width
+//
+//                            const x1 = canvas_state.previous_screen_holst_pos.x+1e-5
+//                            const x2 = pt.x
+//                            const y1 = canvas_state.previous_screen_holst_pos.y+1e-5
+//                            const y2 = pt.y
+//                            const A = y2 - y1
+//                            const B = x1 - x2
+//                            const C = y1 * (x2 - x1) - x1 * (y2 - y1)
+//
+//                            const len = Math.abs(A * pts[0].x + B * pts[0].y + C) / Math.sqrt(A * A + B * B)
+//                            console.log(len, added_width, len_to_pt)
+//
+//                            is_intersect = len <= added_width
+                            is_intersect = true
+                        }
+                        else
                         for(let p=1;p<pts.length;p++) {
                             // Проверяем пересечение отрезков
                             if(segment_intersection(pts[p - 1], pts[p], canvas_state.previous_screen_holst_pos, pt)) {
