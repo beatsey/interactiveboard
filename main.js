@@ -203,8 +203,6 @@ Ability to render pdf file on board.
 * ЦЕЛЬ: сделать базу данных с заданиями для ЕГЭ/ОГЭ по математике и информатике, чтобы задания могли генерироваться автоматически.
 То есть нет необходимости вручную их вставлять на доску (эта фича была бы полезна Игорю).
 Можно было бы сделать справа поисковик номеров и просто перетаскиванием мышью можно было бы на доску номер переносить.
-ЦЕЛЬ: перейти на свою доску полноценно для проведения своих занятий до сентября 2023
-*
 * */
 
 let canvas, ctx;
@@ -389,7 +387,7 @@ function init() {
         for(let i=0;i<json_file_data.index_images.length;i++) {
             let src = json_file_data.index_images[i]
             canvas_state.board.index_images.push(new ExtendedImage(src=src))
-            canvas_state.board.src_index[src] = i
+            canvas_state.board.src_index[src] = canvas_state.board.index_images.length - 1
         }
         canvas_state.board.objects = json_file_data.objects
         canvas_state.curvesandimages_len = canvas_state.board.objects.length
