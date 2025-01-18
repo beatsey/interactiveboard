@@ -387,7 +387,7 @@ function init() {
         for(let i=0;i<json_file_data.index_images.length;i++) {
             let src = json_file_data.index_images[i]
             canvas_state.board.index_images.push(new ExtendedImage(src=src))
-            canvas_state.board.src_index[src] = canvas_state.board.index_images.length - 1
+            canvas_state.board.src_index[src] = i
         }
         canvas_state.board.objects = json_file_data.objects
         canvas_state.curvesandimages_len = canvas_state.board.objects.length
