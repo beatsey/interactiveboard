@@ -11,55 +11,35 @@
 <body onload="init()">
     <canvas id="can"></canvas>
     <div class="toolbar">
-        <button id="tool-pencil" onclick="pickTool('pencil')">
+        <!-- https://www.svgrepo.com/svg/310716/cursor УКАЗАТЕЛЬ -->
+        <button id="tool-cursor" onclick="pickTool(this)" class="tools">
+            <svg width="1024" height="1024" viewBox="100 100 860 860">
+                <path fill="rgb(0,0,0)" d="M593.066667 846.933333c-2.133333 0-4.266667 0-8.533334-2.133333s-8.533333-6.4-12.8-10.666667l-78.933333-183.466666-96 89.6c-2.133333 4.266667-6.4 6.4-12.8 6.4-2.133333 0-6.4 0-8.533333-2.133334-6.4-2.133333-12.8-10.666667-12.8-19.2V256c0-8.533333 4.266667-17.066667 12.8-19.2 2.133333-2.133333 6.4-2.133333 8.533333-2.133333 4.266667 0 10.666667 2.133333 14.933333 6.4l341.333334 320c6.4 6.4 8.533333 14.933333 6.4 23.466666-2.133333 8.533333-10.666667 12.8-19.2 14.933334l-134.4 12.8 83.2 181.333333c2.133333 4.266667 2.133333 10.666667 0 17.066667-2.133333 4.266667-6.4 10.666667-10.666667 12.8l-61.866667 27.733333c-4.266667-4.266667-8.533333-4.266667-10.666666-4.266667z"/>
+            </svg>
+        </button>
+
+        <button id="tool-pencil" onclick="pickTool(this)" class="tools">
             <!-- https://www.svgrepo.com/collection/chunk-16px-thick-interface-icons/2 -->
             <svg id="svg-pencil" width="28" height="28" viewBox="0 0 16 16" fill="#000000">
                 <path d="M8.29289 3.70711L1 11V15H5L12.2929 7.70711L8.29289 3.70711Z"/>
                 <path d="M9.70711 2.29289L13.7071 6.29289L15.1716 4.82843C15.702 4.29799 16 3.57857 16 2.82843C16 1.26633 14.7337 0 13.1716 0C12.4214 0 11.702 0.297995 11.1716 0.828428L9.70711 2.29289Z"/>
             </svg>
         </button>
-        <button onclick="pickTool('eraser')" id="tool-eraser">
-            <!-- <svg width="28" height="28" viewBox="0 0 24 24" fill="#000000">
-                <path d="M11.4096 5.50506C13.0796 3.83502 13.9146 3 14.9522 3C15.9899 3 16.8249 3.83502 18.4949 5.50506C20.165 7.1751 21 8.01013 21 9.04776C21 10.0854 20.165 10.9204 18.4949 12.5904L14.3017 16.7837L7.21634 9.69828L11.4096 5.50506Z"/>
-                <path d="M6.1557 10.759L13.2411 17.8443L12.5904 18.4949C12.2127 18.8727 11.8777 19.2077 11.5734 19.5H21C21.4142 19.5 21.75 19.8358 21.75 20.25C21.75 20.6642 21.4142 21 21 21H9C7.98423 20.9747 7.1494 20.1393 5.50506 18.4949C3.83502 16.8249 3 15.9899 3 14.9522C3 13.9146 3.83502 13.0796 5.50506 11.4096L6.1557 10.759Z"/>
-            </svg> -->
 
+        <button onclick="pickTool(this)" id="tool-eraser" class="tools">
             <!-- https://www.svgrepo.com/svg/205221/eraser -->
-            <svg fill="#000000" height="28" width="28" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                 viewBox="0 0 507.85 507.85" xml:space="preserve">
-            <g>
-                <g>
-                    <path d="M490.8,148.725l-104.8-104c-11.2-10.8-26-17.2-41.6-17.2c-15.6,0-30.4,6-41.6,17.2l-285.6,284
+            <svg fill="#000000" height="28" width="28" version="1.1" viewBox="0 0 507.85 507.85">
+                <path d="M490.8,148.725l-104.8-104c-11.2-10.8-26-17.2-41.6-17.2c-15.6,0-30.4,6-41.6,17.2l-285.6,284
                         C6,339.525,0,354.325,0,369.925c0,15.6,6,30.4,17.2,41.2l66.8,66.8c1.6,1.6,3.6,2.4,5.6,2.4h279.6c4.4,0,8-3.6,8-8
                         c0-4.4-3.6-8-8-8H256.4l234-232.8C513.6,208.725,513.6,171.525,490.8,148.725z M234,464.325H92.8l-64.4-64
                         c-8-8-12.4-18.8-12.4-30.4c0-11.6,4.4-22,12.4-30.4l140.4-139.2l165.2,164.4L234,464.325z"/>
-                </g>
-            </g>
             </svg>
-
-            <!-- https://www.svgrepo.com/svg/267996/eraser -->
-            <!-- <svg fill="#000000" height="28" width="28" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
-                 viewBox="0 0 512 512" xml:space="preserve">
-            <g>
-                <g>
-                    <path d="M139.471,181.549L18.389,302.631C6.53,314.489,0,330.255,0,347.025s6.53,32.535,18.389,44.394l102.084,102.084H246.41
-                        l102.507-102.507L139.471,181.549z"/>
-                </g>
-            </g>
-            <g>
-                <g>
-                    <path d="M493.611,157.515L372.952,36.856c-24.477-24.478-64.308-24.479-88.789,0L163.082,157.938l209.447,209.447L493.61,246.304
-                        C505.47,234.444,512,218.679,512,201.909C512,185.139,505.47,169.373,493.611,157.515z"/>
-                </g>
-            </g>
-            </svg> -->
-
         </button>
-        <input type="color" id="colorPicker" style="display:none" onclick="pickTool('pencil')" onchange="color(this.value)">
-
+        <!--<input type="color" id="colorPicker" style="display:none" onclick="pickTool('pencil')" onchange="color(this.value)">
         <button id="brushSizeBtn" onclick="document.getElementById('colorPicker').click()">
             <span id="brushIndicator" style="display: inline-block; background-color: #000; border-radius: 50%; width: 12px; height: 12px;"></span>
         </button>
+        -->
         <!-- <button>SHAPE</button> -->
         <button id="undo" onclick="undo()" disabled>UNDO</button>
         <button id="redo" onclick="redo()" disabled>REDO</button>

@@ -1122,12 +1122,12 @@ function save_board_state() {
     a.click();
 }
 
-function pickTool(tool_name) {
-    canvas_state.tool = tool_name
-
-    document.getElementById('tool-eraser').classList.remove('active')
-    document.getElementById('tool-pencil').classList.remove('active')
-    document.getElementById('tool-'+tool_name).classList.add('active')
+function pickTool(tool) {
+    canvas_state.tool = tool.id.substr(5)
+    Array.from(document.getElementsByClassName('tools active')).forEach(
+        element => element.classList.remove('active')
+    )
+    tool.classList.add('active')
 }
 
 function color(color_name) {
